@@ -3,8 +3,8 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
-<link rel="manifest" href="/manifest.json?v=23">
-<link rel="apple-touch-icon" href="/my-icon-180.png?v=23">
+<link rel="manifest" href="/manifest.json?v=24">
+<link rel="apple-touch-icon" href="/my-icon-180.png?v=24">
 <title>플로우갓의 채팅방</title>
 <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
 <meta name="theme-color" content="#ffffff">
@@ -43,6 +43,15 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Apple SD Gothic Neo','Noto Sa
 .emojiBarWrap.hidden{display:none !important}
 .emojiRestoreBtn{position:absolute;left:10px;bottom:70px;background:#fff;border:1px solid #eee;border-radius:20px;padding:6px 12px;font-size:12px;box-shadow:0 2px 8px rgba(0,0,0,.1);z-index:5;cursor:pointer;display:none}
 .emojiRestoreBtn.show{display:block}
+.floatingEmoji{position:absolute;left:50%;top:46%;transform:translate(-50%,-50%) scale(0.5);font-size:88px;z-index:100;pointer-events:none;animation:emojiPopFade 2.2s cubic-bezier(.34,1.56,.64,1) forwards;text-shadow:0 8px 28px rgba(0,0,0,.25)}
+@keyframes emojiPopFade{
+  0%{opacity:0;transform:translate(-50%,-50%) scale(0.2)}
+  18%{opacity:1;transform:translate(-50%,-50%) scale(1.35)}
+  28%{transform:translate(-50%,-50%) scale(1.05)}
+  75%{opacity:1;transform:translate(-50%,-50%) scale(1.05)}
+  100%{opacity:0;transform:translate(-50%,-30%) scale(0.7)}
+}
+.messages{position:relative}
 .emojiCollapsed{cursor:pointer}
 .login{flex:1;display:flex;flex-direction:column;justify-content:center;padding:24px 28px;gap:14px;background:#fff;overflow-y:auto}
 .login h1{font-size:23px;line-height:1.3}
@@ -144,7 +153,7 @@ const quickEmojis = ['🙏 감사해요','🙌 할렐루야','😊 기뻐요','�
 function renderLogin(){
  appEl.innerHTML=`<div class="login" style="gap:16px">
   <div style="text-align:center;margin-bottom:4px">
-    <img src="/my-icon-512.png?v=23" onerror="this.src='/my-icon-192.png?v=23'; this.onerror=null" alt="플로우갓 캐릭터" style="width:132px;height:132px;border-radius:50%;object-fit:contain;background:#FEE500;padding:10px;box-shadow:0 8px 24px rgba(0,0,0,.15);display:inline-block">
+    <img src="/my-icon-512.png?v=24" onerror="this.src='/my-icon-192.png?v=24'; this.onerror=null" alt="플로우갓 캐릭터" style="width:132px;height:132px;border-radius:50%;object-fit:contain;background:#FEE500;padding:10px;box-shadow:0 8px 24px rgba(0,0,0,.15);display:inline-block">
   </div>
   <h1 style="text-align:center;font-size:22px">🐣 플로우갓의 채팅방 입장</h1>
   <input id="nameIn" placeholder="내 이름 (방장 포함하면 방장)" />
@@ -197,10 +206,10 @@ function initSocket(){
  socket.on('systemMessage',txt=>{addSystem(txt); if((txt.includes('들어왔')||txt.includes('입장')||txt.includes('입장'))&&!txt.includes(myInfo.username)) playEnterSound();});
  socket.on('userJoined',data=>{if(data.username!==myInfo.username){addSystem(`🔔 ${data.character||'🐣'} ${data.username}님이 들어왔습니다.`); playEnterSound();}});
  socket.on('userLeft',data=>addSystem(`👋 ${data.username}님이 나갔습니다.`));
- socket.on('bgmTrackChange',track=>{if(bgmList.includes(track)){currentTrack=track;const p=document.getElementById('bgmPlayer');const was=!p.paused;p.src='/'+track+'?v=23';localStorage.setItem('lastBgmTrack',track);updateBgmSelect();if(was)p.play().catch(()=>{});addSystem(`🎵 BGM 변경: ${track}`);}});
+ socket.on('bgmTrackChange',track=>{if(bgmList.includes(track)){currentTrack=track;const p=document.getElementById('bgmPlayer');const was=!p.paused;p.src='/'+track+'?v=24';localStorage.setItem('lastBgmTrack',track);updateBgmSelect();if(was)p.play().catch(()=>{});addSystem(`🎵 BGM 변경: ${track}`);}});
 }
 function renderChat(){
- appEl.innerHTML=`<div class="header"><div class="headerTop"><b>${myInfo.character} ${myInfo.username} · ${roomId} ${isHost?'👑방장':''}</b><span style="font-size:11px;color:#888">플로우갓의 채팅방 v23</span></div><div id="bgmBarWrap"></div></div>
+ appEl.innerHTML=`<div class="header"><div class="headerTop"><b>${myInfo.character} ${myInfo.username} · ${roomId} ${isHost?'👑방장':''}</b><span style="font-size:11px;color:#888">플로우갓의 채팅방 v24</span></div><div id="bgmBarWrap"></div></div>
  <div class="messages" id="msgs"></div>
  <div class="emojiBarWrap" id="emojiBarWrap">
    <div class="emoPanel show" id="emoPanel" style="display:block"></div>
@@ -222,6 +231,17 @@ function renderBgmBar(){
  // 일반 유저는 볼륨 슬라이더 제거 (방장만)
  const volHtml = isHost ? `<span style="margin-left:auto">🔊 <span id="volLabel">${Math.round(myVolume*100)}%</span></span><input type="range" id="volSlider" min="0" max="1" step="0.01" value="${myVolume}" oninput="changeMyVolume(this.value)" style="flex:1; accent-color:#000; max-width:90px"><button onclick="toggleBgmMute()">🔇</button>` : ``;
  w.innerHTML=`<div class="bgmBar"><button id="bgmPlayBtn" onclick="toggleBgm()">▶ 재생</button>${hostCtrl}${volHtml}<button onclick="toggleEnterSound()" id="enterBtn" style="margin-left:${isHost?'':'auto'}">${enterSoundEnabled?'🔔':'🔕'}</button></div><div style="font-size:10px;color:#888">${isHost?'👑 방장 | 볼륨조절 가능 | BGM 5곡 변경 가능':'일반 유저 | BGM 감상만 | 알람 '+ (enterSoundEnabled?'ON':'OFF')}</div>`;
+}
+function showFloatingEmoji(emoji){
+  var msgsEl = document.getElementById('msgs');
+  if(!msgsEl) return;
+  var old = msgsEl.querySelectorAll('.floatingEmoji');
+  old.forEach(function(o){ o.remove(); });
+  var el = document.createElement('div');
+  el.className='floatingEmoji';
+  el.textContent=emoji;
+  msgsEl.appendChild(el);
+  setTimeout(function(){ if(el.parentNode) el.remove(); }, 2300);
 }
 let openedCat = null;
 let sliderOpen = false;
@@ -287,7 +307,7 @@ function updateBgmSelect(){const s=document.getElementById('bgmSelect'); if(s) s
 function initBgm(){
   const p=document.getElementById('bgmPlayer');
   if(!p){console.log('bgmPlayer 없음!'); return;}
-  p.src='/'+currentTrack+'?v=23';
+  p.src='/'+currentTrack+'?v=24';
   p.volume=myVolume;
   p.preload='auto';
   console.log('BGM init',currentTrack,myVolume);
@@ -313,7 +333,7 @@ function changeTrack(t){
   currentTrack=t;
   const p=document.getElementById('bgmPlayer');
   const was=p && !p.paused;
-  if(p){ p.src='/'+t+'?v=23'; p.volume=myVolume; if(was) p.play().catch(()=>{}); }
+  if(p){ p.src='/'+t+'?v=24'; p.volume=myVolume; if(was) p.play().catch(()=>{}); }
   localStorage.setItem('lastBgmTrack',t);
   if(socket) socket.emit('bgmTrackChange',t);
   addSystem(`🎵 BGM 변경: ${t} (방장)`);
