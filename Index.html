@@ -3,27 +3,24 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
-
- 
 <link rel="manifest" href="/manifest.json?v=2">
 <link rel="apple-touch-icon" href="/my-icon-180.png?v=2">
-
-
- 
- 
- <title>플로우갓의 채팅방</title>
-
- <meta name="theme-color" content="#ffffff">
+<title>플로우갓의 채팅방</title>
+<meta name="theme-color" content="#ffffff">
 <meta name="apple-mobile-web-app-status-bar-style" content="default">
 <meta name="apple-mobile-web-app-capable" content="yes">
-<link rel="apple-touch-icon" href="icon-192.png">
 <style>
   *{margin:0;padding:0;box-sizing:border-box}
   body{font-family:-apple-system,BlinkMacSystemFont,'Apple SD Gothic Neo','Noto Sans KR',sans-serif;background:#fff;height:100dvh;display:flex;justify-content:center;align-items:center;margin:0;padding:0;padding-top:env(safe-area-inset-top)}
   .app{width:100%;max-width:420px;height:100dvh;height:calc(100dvh - env(safe-area-inset-top));background:#fff;display:flex;flex-direction:column;position:relative;overflow:hidden;box-shadow:none}
   @media(min-width:500px){.app{height:90dvh;border-radius:24px}}
-  .header{background:#ffffffcc;backdrop-filter:blur(20px);-webkit-backdrop-filter:blur(20px);padding:14px 16px;padding-top:calc(14px + env(safe-area-inset-top));display:flex;justify-content:space-between;align-items:center;border-bottom:1px solid #f0f0f0;position:sticky;top:0;z-index:10}
+  .header{background:#ffffffcc;backdrop-filter:blur(20px);-webkit-backdrop-filter:blur(20px);padding:14px 16px;padding-top:calc(14px + env(safe-area-inset-top));display:flex;flex-direction:column;gap:8px;border-bottom:1px solid #f0f0f0;position:sticky;top:0;z-index:10}
+  .headerTop{display:flex;justify-content:space-between;align-items:center}
   .header b{font-size:17px}
+  .bgmBar{display:flex;align-items:center;gap:8px;background:#f5f5f5;padding:8px 12px;border-radius:12px;font-size:13px}
+  .bgmBar select{padding:4px 8px;border-radius:8px;border:1px solid #ddd;font-size:12px}
+  .bgmBar input[type=range]{flex:1;max-width:90px}
+  .bgmBar button{padding:4px 8px;border:none;border-radius:8px;background:#fff;border:1px solid #ddd;cursor:pointer;font-size:12px}
   .login{flex:1;display:flex;flex-direction:column;justify-content:center;padding:32px;gap:16px;background:#fff}
   .login h1{font-size:24px}
   .login input, .login select{padding:14px;border:1px solid #ddd;border-radius:12px;font-size:16px}
@@ -48,18 +45,23 @@
 </head>
 <body>
 <div class="app" id="app"></div>
+<audio id="bgmPlayer" loop preload="auto"></audio>
 <script src="/socket.io/socket.io.js"></script>
 <script>
 const appEl = document.getElementById('app');
 let socket, myInfo, roomId='main-room';
 let state='login';
 let isComposing = false;
+let isHost = false;
+let currentTrack = localStorage.getItem('lastBgmTrack') || 'bgm1.mp3';
+let myVolume = parseFloat(localStorage.getItem('myBgmVolume') || '0.5');
+const bgmList = ['bgm1.mp3','bgm2.mp3','bgm3.mp3','bgm4.mp3','bgm5.mp3'];
 function renderLogin(){
  appEl.innerHTML=`
  <div class="login">
   <h1>🐣 실시간 채팅 입장</h1>
   <p style="color:#666;font-size:14px">아이폰·갤럭시 둘 다 설치 가능! 같은 링크로 친구랑 바로 대화</p>
-  <input id="nameIn" placeholder="내 이름 (예: 지훈)" />
+  <input id="nameIn" placeholder="내 이름 (예: 지훈) - '방장' 포함하면 방장" />
   <div>
     <p style="font-size:13px;margin-bottom:8px">내 캐릭터 선택</p>
     <div class="chars" id="chars"></div>
@@ -88,9 +90,15 @@ function enter(){
  const room=document.getElementById('roomIn').value.trim()||'main-room';
  roomId=room;
  myInfo={username:name, character:window._sel(), roomId};
+ // 방장 판별: 이름에 방장/플로우갓 포함 or 첫 입장자
+ isHost = name.includes('방장') || name.includes('플로우갓') || name.includes('관리자');
+ if(isHost) localStorage.setItem('isHost-'+roomId, '1');
+ else if(localStorage.getItem('isHost-'+roomId)) isHost = true;
+ 
  state='chat';
  initSocket();
  renderChat();
+ initBgm();
 }
 function initSocket(){
  socket=io();
@@ -99,10 +107,33 @@ function initSocket(){
  socket.on('fileMessage', addFileMsg);
  socket.on('voiceMessage', addVoiceMsg);
  socket.on('systemMessage', (txt)=> addSystem(txt));
+ // BGM 트랙 변경은 방장만 - 전체에 동기화 (볼륨은 동기화 안함!)
+ socket.on('bgmTrackChange', (track)=>{
+   if(bgmList.includes(track)){
+     currentTrack = track;
+     const player = document.getElementById('bgmPlayer');
+     const wasPlaying = !player.paused;
+     player.src = '/'+track;
+     localStorage.setItem('lastBgmTrack', track);
+     updateBgmSelect();
+     if(wasPlaying) player.play().catch(()=>{});
+     addSystem(`🎵 BGM 변경: ${track} (방장)`);
+   }
+ });
+ socket.on('hostAssigned', (data)=>{
+   if(data.username === myInfo.username){
+     isHost = true;
+     localStorage.setItem('isHost-'+roomId, '1');
+     renderBgmBar();
+   }
+ });
 }
 function renderChat(){
  appEl.innerHTML=`
-  <div class="header"><b>${myInfo.character} ${myInfo.username} · ${roomId}</b><span style="font-size:12px;color:#888">${location.hostname}</span></div>
+  <div class="header">
+    <div class="headerTop"><b>${myInfo.character} ${myInfo.username} · ${roomId} ${isHost?'👑':''}</b><span style="font-size:12px;color:#888">${location.hostname}</span></div>
+    <div id="bgmBarWrap"></div>
+  </div>
   <div class="messages" id="msgs"></div>
   <div class="inputArea">
    <button class="iconBtn" onclick="document.getElementById('fileIn').click()">📎</button>
@@ -113,21 +144,89 @@ function renderChat(){
   </div>`;
  const textIn = document.getElementById('textIn');
  textIn.focus();
- // 🔧 한글 조합 중 Enter 방지
  textIn.addEventListener('compositionstart', ()=>{ isComposing = true; });
- textIn.addEventListener('compositionend', ()=>{ 
-   setTimeout(()=>{ isComposing = false; }, 100);
- });
+ textIn.addEventListener('compositionend', ()=>{ setTimeout(()=>{ isComposing = false; }, 100); });
  textIn.addEventListener('keydown', (e)=>{
    if(e.key === 'Enter'){
-     if(isComposing || e.isComposing || e.keyCode === 229){
-       return; // 한글 조합 중이면 전송 안 함
-     }
-     e.preventDefault();
-     sendText();
+     if(isComposing || e.isComposing || e.keyCode === 229) return;
+     e.preventDefault(); sendText();
    }
  });
  if('serviceWorker' in navigator) navigator.serviceWorker.register('sw.js');
+ renderBgmBar();
+}
+function renderBgmBar(){
+ const wrap = document.getElementById('bgmBarWrap');
+ if(!wrap) return;
+ const hostControls = isHost ? `
+   <select id="bgmSelect" onchange="changeTrack(this.value)">
+     ${bgmList.map(t=>`<option value="${t}" ${t===currentTrack?'selected':''}>${t}</option>`).join('')}
+   </select>
+   <span style="font-size:11px;color:#666">방장 전용</span>
+ ` : `<span style="font-size:12px">🎵 ${currentTrack} ${isHost?'':'(방장만 변경 가능)'}</span>`;
+ wrap.innerHTML = `
+  <div class="bgmBar">
+    <button id="bgmPlayBtn" onclick="toggleBgm()">▶️</button>
+    ${hostControls}
+    <span style="margin-left:auto;font-size:11px">🔊</span>
+    <input type="range" id="volSlider" min="0" max="1" step="0.01" value="${myVolume}" oninput="changeMyVolume(this.value)">
+    <button onclick="toggleBgmMute()">🔇</button>
+  </div>
+  <div style="font-size:10px;color:#888;margin-top:4px">🔊 볼륨은 개인 설정 (나만 들림) | 🎵 곡 변경은 방장만</div>
+ `;
+}
+function updateBgmSelect(){
+ const sel = document.getElementById('bgmSelect');
+ if(sel) sel.value = currentTrack;
+}
+function initBgm(){
+ const player = document.getElementById('bgmPlayer');
+ player.src = '/'+currentTrack;
+ player.volume = myVolume;
+ // 자동재생 시도 (브라우저 정책으로 실패할 수 있음 - 버튼으로 재생)
+ player.play().catch(()=>{ console.log('자동재생 차단 - 버튼 눌러주세요'); });
+}
+function toggleBgm(){
+ const player = document.getElementById('bgmPlayer');
+ if(player.paused){
+   player.play().then(()=>{ document.getElementById('bgmPlayBtn').textContent='⏸️'; }).catch(()=>{});
+ } else {
+   player.pause();
+   document.getElementById('bgmPlayBtn').textContent='▶️';
+ }
+}
+function changeTrack(newTrack){
+ if(!isHost) return alert('BGM 변경은 방장만 가능해!');
+ if(!bgmList.includes(newTrack)) return;
+ currentTrack = newTrack;
+ const player = document.getElementById('bgmPlayer');
+ const wasPlaying = !player.paused;
+ player.src = '/'+newTrack;
+ localStorage.setItem('lastBgmTrack', newTrack);
+ if(wasPlaying) player.play().catch(()=>{});
+ // 서버에 트랙 변경 알림 - 볼륨은 절대 보내지 않음!
+ socket.emit('bgmTrackChange', newTrack);
+ addSystem(`🎵 BGM 변경: ${newTrack}`);
+}
+function changeMyVolume(val){
+ myVolume = parseFloat(val);
+ const player = document.getElementById('bgmPlayer');
+ player.volume = myVolume;
+ localStorage.setItem('myBgmVolume', myVolume);
+ // 절대 서버로 전송 안함! 개인 볼륨!
+}
+function toggleBgmMute(){
+ const player = document.getElementById('bgmPlayer');
+ const slider = document.getElementById('volSlider');
+ if(player.volume > 0){
+   slider.dataset.prev = player.volume;
+   changeMyVolume(0);
+   slider.value = 0;
+ } else {
+   const prev = parseFloat(slider.dataset.prev || '0.5');
+   changeMyVolume(prev);
+   slider.value = prev;
+ }
 }
 function escapeHtml(str){
   return str.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
@@ -142,7 +241,8 @@ function addMsg(data){
 }
 function addSystem(txt){
  const el=document.createElement('div'); el.className='system'; el.textContent=txt;
- document.getElementById('msgs').appendChild(el); scroll();
+ const msgs = document.getElementById('msgs');
+ if(msgs){ msgs.appendChild(el); scroll(); }
 }
 function addFileMsg(data){
  const isMe=data.username===myInfo.username;
@@ -153,10 +253,10 @@ function addFileMsg(data){
 function addVoiceMsg(data){
  const isMe=data.username===myInfo.username;
  const el=document.createElement('div'); el.className=isMe?'msg me':'msg other';
- el.innerHTML=`<div class="sender">${data.character} ${escapeHtml(data.username)}</div><div style="display:flex;align-items:center;gap:8px"><button onclick="new Audio('${data.dataUrl}').play()">▶️</button><div style="flex:1;height:4px;background:rgba(0,0,0,.1);border-radius:2px"><div style="width:100%;height:100%;background:#000;border-radius:2px;opacity:.2"></div></div><span style="font-size:12px">${data.duration}s</span></div>`;
+ el.innerHTML=`<div class="sender">${data.character} ${escapeHtml(data.username)}</div><div style="display:flex;align-items:center;gap:8px"><button onclick="new Audio('${data.dataUrl}').play()">▶</button><div style="flex:1;height:4px;background:rgba(0,0,0,.1);border-radius:2px"><div style="width:100%;height:100%;background:#000;border-radius:2px;opacity:.2"></div></div><span style="font-size:12px">${data.duration}s</span></div>`;
  document.getElementById('msgs').appendChild(el); scroll();
 }
-function scroll(){ const m=document.getElementById('msgs'); m.scrollTop=m.scrollHeight; }
+function scroll(){ const m=document.getElementById('msgs'); if(m) m.scrollTop=m.scrollHeight; }
 function sendText(){
  if(isComposing) return;
  const inp=document.getElementById('textIn'); 
@@ -178,10 +278,9 @@ async function toggleVoice(){
  rec=new MediaRecorder(stream); chunks=[]; startT=Date.now();
  rec.ondataavailable=e=>chunks.push(e.data);
  rec.onstop=()=>{ const blob=new Blob(chunks,{type:'audio/webm'}); const r=new FileReader(); r.onload=()=>{ socket.emit('voiceMessage',{...myInfo, dataUrl:r.result, duration:Math.round((Date.now()-startT)/1000)}); }; r.readAsDataURL(blob); };
- rec.start(); btn.textContent='⏹️'; btn.style.background='#ff4444'; btn.style.color='#fff';
+ rec.start(); btn.textContent='⏹'; btn.style.background='#ff4444'; btn.style.color='#fff';
 }
 renderLogin();
 </script>
- <p></p>
 </body>
 </html>
