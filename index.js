@@ -1,57 +1,99 @@
-import express from 'express';
-import http from 'http';
-import { Server } from 'socket.io';
-import cors from 'cors';
-import path from 'path';
-import { fileURLToPath } from 'url';
+const express = require('express');
+const http = require('http');
+const { Server } = require('socket.io');
+const path = require('path');
+const fs = require('fs');
 
-const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const app = express();
-app.use(cors());
-// 👇 이 2줄이 핵심 수정!
-app.use(express.static(__dirname));
-app.get('/', (req, res) => {
-  res.sendFile(path.join(__dirname, 'index.html'));
-});
-
 const server = http.createServer(app);
 const io = new Server(server, { cors: { origin: "*" } });
 
-const rooms = {};
+const PORT = process.env.PORT || 10000;
+
+// 모든 정적 파일 제공 - 여러 위치 시도
+const possiblePaths = [
+  path.join(__dirname, 'index.html'),
+  path.join(__dirname, '..', 'index.html'),
+  path.join(process.cwd(), 'index.html'),
+  path.join(process.cwd(), 'src', 'index.html'),
+  '/opt/render/project/src/index.html',
+  '/opt/render/project/index.html'
+];
+
+app.get('/', (req, res) => {
+  for (const p of possiblePaths) {
+    if (fs.existsSync(p)) {
+      console.log(`Serving index.html from: ${p}`);
+      return res.sendFile(p);
+    }
+  }
+  console.error('index.html not found in any of:', possiblePaths);
+  return res.status(404).send(`
+    <h1>index.html을 찾을 수 없습니다</h1>
+    <p>시도한 경로:</p>
+    <pre>${possiblePaths.join('\n')}</pre>
+    <p>현재 디렉토리: ${__dirname}</p>
+    <p>작업 디렉토리: ${process.cwd()}</p>
+    <p>파일 목록: ${fs.readdirSync(__dirname).join(', ')}</p>
+  `);
+});
+
+// 정적 파일 제공
+app.use(express.static(__dirname));
+app.use(express.static(path.join(__dirname, '..')));
+app.use(express.static(process.cwd()));
+
+// manifest, sw.js 등
+app.get('/manifest.json', (req, res) => {
+  const p = possiblePaths.map(p=>p.replace('index.html','manifest.json')).find(f=>fs.existsSync(f));
+  if(p) return res.sendFile(p);
+  res.status(404).send('manifest not found');
+});
+app.get('/sw.js', (req, res) => {
+  const p = possiblePaths.map(p=>p.replace('index.html','sw.js')).find(f=>fs.existsSync(f));
+  if(p) return res.sendFile(p);
+  res.status(404).send('sw not found');
+});
+
+let users = {};
 
 io.on('connection', (socket) => {
-  console.log('connected', socket.id);
-
-  socket.on('joinRoom', ({ roomId, username, character }) => {
-    socket.join(roomId);
-    socket.data = { roomId, username, character };
-    if(!rooms[roomId]) rooms[roomId]=[];
-    rooms[roomId].push({ id: socket.id, username, character });
-    io.to(roomId).emit('userList', rooms[roomId]);
-    socket.to(roomId).emit('systemMessage', `${username} ${character} 님이 입장했어요`);
+  socket.on('joinRoom', (data) => {
+    socket.join(data.roomId);
+    users[socket.id] = data;
+    socket.to(data.roomId).emit('systemMessage', `${data.character} ${data.username}님이 입장하셨습니다`);
   });
 
   socket.on('chatMessage', (data) => {
-    io.to(data.roomId).emit('chatMessage', {...data, id: Date.now(), socketId: socket.id });
+    const msg = { ...data, id: Date.now() };
+    io.to(data.roomId).emit('chatMessage', msg);
   });
 
   socket.on('fileMessage', (data) => {
-    io.to(data.roomId).emit('fileMessage', {...data, id: Date.now() });
+    const msg = { ...data, id: Date.now() };
+    io.to(data.roomId).emit('fileMessage', msg);
   });
 
   socket.on('voiceMessage', (data) => {
-    io.to(data.roomId).emit('voiceMessage', {...data, id: Date.now() });
+    const msg = { ...data, id: Date.now() };
+    io.to(data.roomId).emit('voiceMessage', msg);
   });
 
   socket.on('disconnect', () => {
-    const { roomId, username } = socket.data || {};
-    if(roomId && rooms[roomId]){
-      rooms[roomId] = rooms[roomId].filter(u => u.id!== socket.id);
-      io.to(roomId).emit('userList', rooms[roomId]);
-      if(username) socket.to(roomId).emit('systemMessage', `${username} 님이 나갔어요`);
+    const u = users[socket.id];
+    if(u){
+      socket.to(u.roomId).emit('systemMessage', `${u.character} ${u.username}님이 퇴장하셨습니다`);
+      delete users[socket.id];
     }
   });
 });
 
-const PORT = process.env.PORT || 3000;
-server.listen(PORT, () => console.log(`Server running on http://localhost:${PORT}`));
+server.listen(PORT, () => {
+  console.log(`Server running on http://localhost:${PORT}`);
+  console.log(`__dirname: ${__dirname}`);
+  console.log(`cwd: ${process.cwd()}`);
+  console.log(`Files in __dirname: ${fs.readdirSync(__dirname).join(', ')}`);
+  try{
+    console.log(`Files in cwd: ${fs.readdirSync(process.cwd()).join(', ')}`);
+  }catch(e){}
+});
