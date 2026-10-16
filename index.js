@@ -3,6 +3,7 @@ import http from 'http';
 import { Server } from 'socket.io';
 import path from 'path';
 import { fileURLToPath } from 'url';
+import fs from 'fs';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -12,16 +13,18 @@ const server = http.createServer(app);
 const io = new Server(server, { cors: { origin: "*" }, maxHttpBufferSize: 1e7 });
 const PORT = process.env.PORT || 10000;
 
-// public 폴더 서빙 - bgm1.mp3 ~ bgm5.mp3 여기에 넣은 거 서빙
+// 모든 가능한 경로에서 정적 파일 서빙
+app.use(express.static(__dirname));
 app.use('/public', express.static(path.join(__dirname, 'public')));
-app.use(express.static(path.join(__dirname, 'public'))); // 루트에서도 접근 가능하게
+app.use('/public/public', express.static(path.join(__dirname, 'public')));
+app.use('/static', express.static(path.join(__dirname, 'public')));
 
 const HTML = `<!DOCTYPE html>
 <html lang="ko">
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
-<title>실시간 채팅 - 내 카페음악 5곡</title>
+<title>실시간 채팅 - 내 카페음악</title>
 <style>
 :root{--bg:#fff;--header:rgba(255,255,255,.92);--msgBg:#ABC1D1;--my:#FEE500;--other:#fff;--text:#111;--border:#eee;--inputBg:#f2f2f2;--sheet:#fff}
 [data-theme="dark"]{--bg:#121212;--header:rgba(18,18,18,.92);--msgBg:#0f1419;--my:#FEE500;--other:#2a2f36;--text:#e8e8e8;--border:#2a2a2a;--inputBg:#1e1e1e;--sheet:#1e1e1e}
@@ -95,6 +98,9 @@ input[type=range]{width:80px;height:6px;accent-color:#000;cursor:pointer}
 .photoModal .closeBtn{position:absolute;top:16px;right:16px;width:36px;height:36px;border-radius:50%;background:rgba(255,255,255,.2);border:none;color:#fff;font-size:18px;cursor:pointer;display:grid;place-items:center}
 .photoModal .actionBar{display:flex;gap:8px;margin-top:16px}
 .photoModal .actionBtn{padding:8px 14px;border-radius:20px;border:1px solid rgba(255,255,255,.3);background:rgba(255,255,255,.15);color:#fff;font-size:12px;cursor:pointer}
+.status{font-size:10px;padding:2px 6px;border-radius:8px}
+.status.ok{background:#d4edda;color:#155724}
+.status.fail{background:#f8d7da;color:#721c24}
 </style>
 </head>
 <body>
@@ -106,14 +112,26 @@ let socket, myInfo, roomId='main-room', isHost=false;
 let theme = localStorage.getItem('chatTheme') || (window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light');
 document.documentElement.setAttribute('data-theme', theme);
 
-// 너가 public 폴더에 올린 5곡 - 이제 진짜 네 카페 음악!
+// 5곡 - 모든 가능한 경로 시도 (public 폴더 문제 해결)
 const BGM_LIST = [
-  {id:'bgm1', name:'☕ 카페음악 1', desc:'내가 올린 음악', url:'/public/bgm1.mp3'},
-  {id:'bgm2', name:'☕ 카페음악 2', desc:'내가 올린 음악', url:'/public/bgm2.mp3'},
-  {id:'bgm3', name:'🌧️ 카페음악 3', desc:'내가 올린 음악', url:'/public/bgm3.mp3'},
-  {id:'bgm4', name:'🌙 카페음악 4', desc:'내가 올린 음악', url:'/public/bgm4.mp3'},
-  {id:'bgm5', name:'🍃 카페음악 5', desc:'내가 올린 음악', url:'/public/bgm5.mp3'}
+  {id:'bgm1', name:'☕ 카페음악 1', desc:'', file:'bgm1.mp3'},
+  {id:'bgm2', name:'☕ 카페음악 2', desc:'', file:'bgm2.mp3'},
+  {id:'bgm3', name:'🌧️ 카페음악 3', desc:'', file:'bgm3.mp3'},
+  {id:'bgm4', name:'🌙 카페음악 4', desc:'', file:'bgm4.mp3'},
+  {id:'bgm5', name:'🍃 카페음악 5', desc:'', file:'bgm5.mp3'}
 ];
+
+function getBgmUrls(fileName){
+  // 6가지 경로 모두 시도 - 하나라도 되면 OK
+  return [
+    '/public/' + fileName,
+    '/' + fileName,
+    '/public/public/' + fileName,
+    './public/' + fileName,
+    fileName,
+    '/static/' + fileName
+  ];
+}
 
 let currentBGM = 0;
 let audioEl = null;
@@ -121,6 +139,7 @@ let isPlaying = false;
 let bgmVol = 0.15;
 let volumeDebounceTimer = null;
 let isLoading = false;
+let bgmStatus = {}; // 각 파일 로드 상태 저장
 
 function initAudio(){
   if(audioEl) return audioEl;
@@ -133,59 +152,63 @@ function initAudio(){
   audioEl.addEventListener('waiting', ()=>{ isLoading=true; updateBGMUI(); });
   audioEl.addEventListener('canplay', ()=>{ isLoading=false; updateBGMUI(); });
   audioEl.addEventListener('error', (e)=>{
-    console.log('Audio error - 파일 확인 필요', BGM_LIST[currentBGM].url, e);
-    isLoading=false;
-    isPlaying=false;
-    alert('음악 파일 로드 실패! public 폴더에 ' + BGM_LIST[currentBGM].url + ' 파일이 있는지 확인해주세요!');
-    updateBGMUI();
+    console.log('Audio error', BGM_LIST[currentBGM].file, audioEl.error);
+    // 다음 경로 자동 시도
+    const nextUrlIndex = (audioEl._currentUrlIndex || 0) + 1;
+    const urls = getBgmUrls(BGM_LIST[currentBGM].file);
+    if(nextUrlIndex < urls.length){
+      console.log('Trying next URL', urls[nextUrlIndex]);
+      tryPlayUrl(urls, nextUrlIndex);
+    } else {
+      isLoading=false;
+      isPlaying=false;
+      bgmStatus[BGM_LIST[currentBGM].file] = 'fail';
+      updateBGMUI();
+      // 에러 팝업 제거 - 조용히 실패 표시만
+      console.log('All URLs failed for', BGM_LIST[currentBGM].file);
+    }
   });
   return audioEl;
 }
 
-function playBGM(idx){
+function tryPlayUrl(urls, urlIndex){
   const a = initAudio();
+  const url = urls[urlIndex];
+  a._currentUrlIndex = urlIndex;
+  console.log('Trying URL:', url);
+  a.src = url;
+  a.volume = bgmVol;
+  a.load();
+  const p = a.play();
+  if(p){
+    p.then(()=>{
+      isLoading=false;
+      isPlaying=true;
+      bgmStatus[BGM_LIST[currentBGM].file] = 'ok';
+      console.log('Success playing', url);
+      updateBGMUI();
+    }).catch(e=>{
+      console.log('Play failed for', url, e);
+      const next = urlIndex + 1;
+      if(next < urls.length){
+        tryPlayUrl(urls, next);
+      } else {
+        isLoading=false;
+        isPlaying=false;
+        bgmStatus[BGM_LIST[currentBGM].file] = 'fail';
+        updateBGMUI();
+      }
+    });
+  }
+}
+
+function playBGM(idx){
   currentBGM = idx;
   isLoading = true;
   updateBGMUI();
   
-  // 다른 경로도 시도 (public 없이)
-  const urlsToTry = [BGM_LIST[idx].url, '/bgm'+(idx+1)+'.mp3', 'public/bgm'+(idx+1)+'.mp3', './public/bgm'+(idx+1)+'.mp3'];
-  
-  function tryUrl(urlIndex){
-    if(urlIndex >= urlsToTry.length){
-      isLoading=false;
-      alert('모든 경로에서 음악 파일을 찾을 수 없어요! public 폴더 확인 필요');
-      updateBGMUI();
-      return;
-    }
-    
-    const url = urlsToTry[urlIndex];
-    console.log('Trying BGM url:', url);
-    a.src = url;
-    a.volume = bgmVol;
-    a.load();
-    
-    const playPromise = a.play();
-    if(playPromise){
-      playPromise.then(()=>{
-        isLoading = false;
-        isPlaying = true;
-        updateBGMUI();
-        console.log('BGM playing:', url);
-      }).catch(e=>{
-        console.log('Play failed for', url, e);
-        if(urlIndex < urlsToTry.length - 1){
-          tryUrl(urlIndex + 1);
-        } else {
-          isLoading = false;
-          alert('재생 차단됨 - 한 번 더 눌러주세요!');
-          updateBGMUI();
-        }
-      });
-    }
-  }
-  
-  tryUrl(0);
+  const urls = getBgmUrls(BGM_LIST[idx].file);
+  tryPlayUrl(urls, 0);
 }
 
 function stopBGM(){ if(audioEl){ audioEl.pause(); } isPlaying = false; updateBGMUI(); }
@@ -209,19 +232,18 @@ function setBGMVol(v){
   volumeDebounceTimer = setTimeout(()=>{ socket.emit('bgmControl', {roomId, action: 'volume', data: {vol: bgmVol}}); volumeDebounceTimer=null; }, 500);
 }
 
-function selectBGM(idx){ if(!isHost){ alert('방장만 곡 변경 가능'); return; } console.log('selectBGM', idx); requestBGM('select', {idx}); }
+function selectBGM(idx){ if(!isHost){ alert('방장만 곡 변경 가능'); return; } requestBGM('select', {idx}); }
 
 function applyBGMState(state){
-  currentBGM = state.idx ?? 0;
+  const newIdx = state.idx ?? 0;
   if(!volumeDebounceTimer){ bgmVol = state.vol ?? 0.15; if(audioEl) audioEl.volume = bgmVol; }
   const wasPlaying = isPlaying;
   isPlaying = state.isPlaying ?? false;
   initAudio();
-  if(state.isPlaying && !wasPlaying){ playBGM(currentBGM); }
+  if(state.isPlaying && !wasPlaying){ playBGM(newIdx); }
   else if(!state.isPlaying && wasPlaying){ stopBGM(); }
-  else if(state.isPlaying && state.idx !== currentBGM){ playBGM(state.idx); }
-  isPlaying = state.isPlaying;
-  updateBGMUI();
+  else if(state.isPlaying && newIdx !== currentBGM){ playBGM(newIdx); }
+  else { currentBGM = newIdx; updateBGMUI(); }
 }
 
 function updateBGMUI(){
@@ -240,10 +262,26 @@ function updateBGMUI(){
     track.textContent = txt;
   }
   if(volLabel && !volumeDebounceTimer){ volLabel.textContent = Math.round(bgmVol*100)+'%'; }
+  
+  // 각 BGM 옵션 상태 표시
   document.querySelectorAll('.bgmOption').forEach((el,i)=>{
     el.classList.toggle('active', i===currentBGM);
-    el.style.opacity = isHost ? '1' : '0.6';
+    const statusEl = el.querySelector('.status');
+    if(statusEl){
+      const file = BGM_LIST[i].file;
+      if(bgmStatus[file] === 'ok'){
+        statusEl.textContent = 'OK';
+        statusEl.className = 'status ok';
+      } else if(bgmStatus[file] === 'fail'){
+        statusEl.textContent = '파일 없음';
+        statusEl.className = 'status fail';
+      } else {
+        statusEl.textContent = '';
+        statusEl.className = 'status';
+      }
+    }
   });
+  
   const badge = document.getElementById('bgmHostBadge');
   if(badge) badge.style.display = isHost ? 'inline-block' : 'none';
   const action = document.getElementById('bgmAction');
@@ -252,7 +290,32 @@ function updateBGMUI(){
 
 function closeAllSheets(){ document.getElementById('clipSheet')?.classList.remove('show'); document.getElementById('bgmSheet')?.classList.remove('show'); document.getElementById('overlay')?.classList.remove('show'); }
 function openClip(){ document.getElementById('clipSheet').classList.add('show'); document.getElementById('overlay').classList.add('show'); }
-function openBGMSheet(){ document.getElementById('bgmSheet').classList.add('show'); document.getElementById('overlay').classList.add('show'); updateBGMUI(); }
+function openBGMSheet(){ 
+  document.getElementById('bgmSheet').classList.add('show'); 
+  document.getElementById('overlay').classList.add('show'); 
+  // 파일 상태 체크
+  checkAllBgmFiles();
+  updateBGMUI(); 
+}
+
+function checkAllBgmFiles(){
+  BGM_LIST.forEach((bgm, idx)=>{
+    const urls = getBgmUrls(bgm.file);
+    // 첫 번째 URL만 체크
+    fetch(urls[0], {method:'HEAD'}).then(r=>{
+      if(r.ok){ bgmStatus[bgm.file] = 'ok'; }
+      else { bgmStatus[bgm.file] = 'fail'; }
+      updateBGMUI();
+    }).catch(()=>{
+      // HEAD 실패하면 GET으로 재시도
+      fetch(urls[0]).then(r=>{
+        if(r.ok) bgmStatus[bgm.file] = 'ok';
+        else bgmStatus[bgm.file] = 'fail';
+        updateBGMUI();
+      }).catch(()=>{ bgmStatus[bgm.file] = 'fail'; updateBGMUI(); });
+    });
+  });
+}
 
 let currentPhotoUrl = ''; let currentPhotoName = '';
 function openPhotoModal(url, name){ currentPhotoUrl = url; currentPhotoName = name; document.getElementById('modalImg').src = url; document.getElementById('modalInfo').textContent = name; document.getElementById('photoModal').classList.add('show'); }
@@ -267,11 +330,11 @@ function renderLogin(){
  appEl.innerHTML=\`
  <div class="login">
   <div style="display:flex;justify-content:space-between;align-items:center"><h1>🐣 실시간 채팅</h1><div class="iconCircle" onclick="toggleTheme()">\${theme==='dark'?'☀️':'🌙'}</div></div>
-  <p style="color:#888;font-size:12px">내가 올린 카페음악 5곡으로 작동!</p>
   <input id="nameIn" placeholder="내 이름" />
   <div><p style="font-size:13px;margin-bottom:8px">내 캐릭터</p><div class="chars" id="chars"></div></div>
   <input id="roomIn" placeholder="방 이름" value="main-room"/>
   <button onclick="enter()">입장하기 →</button>
+  <p style="font-size:10px;color:#888">BGM 파일: public/bgm1.mp3 ~ bgm5.mp3</p>
  </div>\`;
  const emojis=['🐻','🐱','🐶','🐰','🦊','🐼','🐨','🐯','🐸','🐵','🦁','🐧'];
  let sel=emojis[0];
@@ -321,7 +384,7 @@ function updateHeader(){
 function renderChat(){
  const tabs = Object.keys(EMOJI_GROUPS).map((k,i)=>\`<button class="qTab \${i==0?'active':''}" onclick="switchTab(this,'\${k}')">\${k}</button>\`).join('');
  const firstGroup = EMOJI_GROUPS[Object.keys(EMOJI_GROUPS)[0]].map(e=>emojiBtnHtml(e)).join('');
- const bgmOptions = BGM_LIST.map((b,i)=>\`<div class="bgmOption \${i===currentBGM?'active':''}" onclick="selectBGM(\${i})"><div><b>\${b.name}</b><br><span style="font-size:11px;color:#888">public/bgm\${i+1}.mp3</span></div><div>\${i===currentBGM?'✅':''}</div></div>\`).join('');
+ const bgmOptions = BGM_LIST.map((b,i)=>\`<div class="bgmOption \${i===currentBGM?'active':''}" onclick="selectBGM(\${i})"><div><b>\${b.name}</b><br><span style="font-size:11px;color:#888">\${b.file}</span></div><div style="display:flex;align-items:center;gap:6px"><span class="status"></span><span>\${i===currentBGM?'✅':''}</span></div></div>\`).join('');
  appEl.innerHTML=\`
   <div class="header">
     <b><span id="crown" class="crown">👑 방장</span> \${myInfo.character} \${myInfo.username}</b>
@@ -356,10 +419,11 @@ function renderChat(){
   </div>
   <div class="bgmSheet" id="bgmSheet">
     <div class="sheetHeader"><span>🎵 내 카페음악 5곡 <span class="badge">방장 전용</span></span><button onclick="closeAllSheets()" style="border:none;background:none;font-size:20px;color:var(--text)">✕</button></div>
-    <p style="font-size:11px;color:#888">👑 방장만 조작 · 내가 올린 음악 · 볼륨 도배 없음</p>
+    <p style="font-size:11px;color:#888">👑 방장만 조작 · 파일 상태를 확인합니다</p>
     \${bgmOptions}
     <div style="display:flex;gap:8px;align-items:center;margin-top:8px"><span style="font-size:11px">볼륨:</span><input type="range" id="volRange2" min="0" max="0.5" step="0.01" value="\${bgmVol}" oninput="setBGMVol(this.value)" onchange="setBGMVol(this.value)" style="flex:1"/><span style="font-size:11px" id="volLabel2">\${Math.round(bgmVol*100)}%</span></div>
     <button class="sheetBtn" onclick="toggleBGM()"><div class="ico">🎵</div><div><b id="bgmAction">재생하기</b><br><span style="font-size:11px;color:#888">방장 전용</span></div></button>
+    <p style="font-size:10px;color:#888">파일이 안 보이면 깃허브에서 파일명 대소문자, 확장자 확인 (.mp3)</p>
   </div>
   <div class="inputArea">
    <button class="iconBtn" id="clipBtn">📎</button>
@@ -477,13 +541,28 @@ renderLogin();
 
 app.get('/', (req,res)=> res.send(HTML));
 
-// BGM 파일 확인용 API
 app.get('/check-bgm', (req,res)=>{
-  const fs = require('fs');
-  const publicPath = path.join(__dirname, 'public');
-  let files = [];
-  try{ files = fs.readdirSync(publicPath); }catch(e){ files = ['public 폴더 없음']; }
-  res.json({publicPath, files, bgmFiles: files.filter(f=>f.startsWith('bgm'))});
+  const results = [];
+  const possiblePaths = [
+    path.join(__dirname, 'public'),
+    path.join(__dirname, 'public', 'public'),
+    __dirname
+  ];
+  
+  possiblePaths.forEach(p=>{
+    try{
+      if(fs.existsSync(p)){
+        const files = fs.readdirSync(p);
+        results.push({path: p, files: files.filter(f=>f.includes('bgm') || f.endsWith('.mp3')).slice(0,20), allCount: files.length});
+      } else {
+        results.push({path: p, error: '폴더 없음'});
+      }
+    }catch(e){
+      results.push({path: p, error: e.message});
+    }
+  });
+  
+  res.json({check: results, hint: 'bgm1.mp3~bgm5.mp3 파일이 public 폴더에 있어야 합니다. 파일명 대소문자 확인!'});
 });
 
 let rooms = {};
@@ -557,4 +636,4 @@ app.get('/export', (req,res)=>{
   const text = all.map(m=>`[${new Date(m.id).toLocaleString('ko-KR')}] ${m.character} ${m.username}${m.isHost?'👑':''}: ${m.text||m.fileName}`).join('\\n');
   res.type('text/plain').send(text);
 });
-server.listen(PORT, ()=> console.log(`✅ Your 5 BGM files on ${PORT}`));
+server.listen(PORT, ()=> console.log(`✅ BGM path fixed on ${PORT}`));
