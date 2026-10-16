@@ -1,17 +1,27 @@
 import express from 'express';
 import http from 'http';
 import { Server } from 'socket.io';
+import path from 'path';
+import { fileURLToPath } from 'url';
+
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
+
 const app = express();
 const server = http.createServer(app);
 const io = new Server(server, { cors: { origin: "*" }, maxHttpBufferSize: 1e7 });
 const PORT = process.env.PORT || 10000;
+
+// public 폴더 서빙 - bgm1.mp3 ~ bgm5.mp3 여기에 넣은 거 서빙
+app.use('/public', express.static(path.join(__dirname, 'public')));
+app.use(express.static(path.join(__dirname, 'public'))); // 루트에서도 접근 가능하게
 
 const HTML = `<!DOCTYPE html>
 <html lang="ko">
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
-<title>실시간 채팅 - 진짜 음악</title>
+<title>실시간 채팅 - 내 카페음악 5곡</title>
 <style>
 :root{--bg:#fff;--header:rgba(255,255,255,.92);--msgBg:#ABC1D1;--my:#FEE500;--other:#fff;--text:#111;--border:#eee;--inputBg:#f2f2f2;--sheet:#fff}
 [data-theme="dark"]{--bg:#121212;--header:rgba(18,18,18,.92);--msgBg:#0f1419;--my:#FEE500;--other:#2a2f36;--text:#e8e8e8;--border:#2a2a2a;--inputBg:#1e1e1e;--sheet:#1e1e1e}
@@ -85,7 +95,6 @@ input[type=range]{width:80px;height:6px;accent-color:#000;cursor:pointer}
 .photoModal .closeBtn{position:absolute;top:16px;right:16px;width:36px;height:36px;border-radius:50%;background:rgba(255,255,255,.2);border:none;color:#fff;font-size:18px;cursor:pointer;display:grid;place-items:center}
 .photoModal .actionBar{display:flex;gap:8px;margin-top:16px}
 .photoModal .actionBtn{padding:8px 14px;border-radius:20px;border:1px solid rgba(255,255,255,.3);background:rgba(255,255,255,.15);color:#fff;font-size:12px;cursor:pointer}
-.loading{font-size:10px;color:#888;margin-left:4px}
 </style>
 </head>
 <body>
@@ -97,13 +106,13 @@ let socket, myInfo, roomId='main-room', isHost=false;
 let theme = localStorage.getItem('chatTheme') || (window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light');
 document.documentElement.setAttribute('data-theme', theme);
 
-// 진짜 음악 5곡 - 안정적인 Pixabay + Mixkit CDN (테스트 완료된 링크)
+// 너가 public 폴더에 올린 5곡 - 이제 진짜 네 카페 음악!
 const BGM_LIST = [
-  {id:'lofi1', name:'🌙 조용한 로파이', desc:'공부용 · 가장 조용함', url:'https://cdn.pixabay.com/audio/2022/05/27/audio_1808fbf07a.mp3'},
-  {id:'lofi2', name:'☕ 카페 로파이', desc:'보사노바 기타', url:'https://cdn.pixabay.com/audio/2023/10/30/audio_8c8a64dd26.mp3'},
-  {id:'rain', name:'🌧️ 빗소리 피아노', desc:'비오는 날 감성', url:'https://cdn.pixabay.com/audio/2022/10/13/audio_00fa5593f3.mp3'},
-  {id:'night', name:'🌃 새벽 재즈', desc:'졸릴 때 듣기 좋음', url:'https://cdn.pixabay.com/audio/2022/08/08/audio_c3d7d4a53d.mp3'},
-  {id:'forest', name:'🍃 숲속 힐링', desc:'명상 · 힐링', url:'https://cdn.pixabay.com/audio/2021/08/04/audio_0625c1539c.mp3'}
+  {id:'bgm1', name:'☕ 카페음악 1', desc:'내가 올린 음악', url:'/public/bgm1.mp3'},
+  {id:'bgm2', name:'☕ 카페음악 2', desc:'내가 올린 음악', url:'/public/bgm2.mp3'},
+  {id:'bgm3', name:'🌧️ 카페음악 3', desc:'내가 올린 음악', url:'/public/bgm3.mp3'},
+  {id:'bgm4', name:'🌙 카페음악 4', desc:'내가 올린 음악', url:'/public/bgm4.mp3'},
+  {id:'bgm5', name:'🍃 카페음악 5', desc:'내가 올린 음악', url:'/public/bgm5.mp3'}
 ];
 
 let currentBGM = 0;
@@ -119,22 +128,15 @@ function initAudio(){
   audioEl.loop = true;
   audioEl.volume = bgmVol;
   audioEl.preload = 'auto';
-  audioEl.crossOrigin = 'anonymous';
   audioEl.addEventListener('play', ()=>{ isPlaying=true; isLoading=false; updateBGMUI(); });
   audioEl.addEventListener('pause', ()=>{ isPlaying=false; updateBGMUI(); });
   audioEl.addEventListener('waiting', ()=>{ isLoading=true; updateBGMUI(); });
   audioEl.addEventListener('canplay', ()=>{ isLoading=false; updateBGMUI(); });
   audioEl.addEventListener('error', (e)=>{
-    console.log('Audio error', e, audioEl.error);
+    console.log('Audio error - 파일 확인 필요', BGM_LIST[currentBGM].url, e);
     isLoading=false;
     isPlaying=false;
-    // 실패하면 다음 곡 자동 시도
-    if(isHost){
-      const next = (currentBGM + 1) % BGM_LIST.length;
-      console.log('Trying next track', next);
-      // 자동으로 다음 곡 시도하지 않고 사용자에게 알림만
-      alert('이 곡 로드 실패 - 다른 곡 선택해보세요!');
-    }
+    alert('음악 파일 로드 실패! public 폴더에 ' + BGM_LIST[currentBGM].url + ' 파일이 있는지 확인해주세요!');
     updateBGMUI();
   });
   return audioEl;
@@ -143,112 +145,82 @@ function initAudio(){
 function playBGM(idx){
   const a = initAudio();
   currentBGM = idx;
-  
-  // 이미 같은 곡 재생 중이면 무시
-  if(a.src === BGM_LIST[idx].url && isPlaying){
-    return;
-  }
-  
   isLoading = true;
   updateBGMUI();
   
-  a.src = BGM_LIST[idx].url;
-  a.volume = bgmVol;
-  a.load();
+  // 다른 경로도 시도 (public 없이)
+  const urlsToTry = [BGM_LIST[idx].url, '/bgm'+(idx+1)+'.mp3', 'public/bgm'+(idx+1)+'.mp3', './public/bgm'+(idx+1)+'.mp3'];
   
-  const playPromise = a.play();
-  if(playPromise){
-    playPromise.then(()=>{
-      isLoading = false;
-      isPlaying = true;
+  function tryUrl(urlIndex){
+    if(urlIndex >= urlsToTry.length){
+      isLoading=false;
+      alert('모든 경로에서 음악 파일을 찾을 수 없어요! public 폴더 확인 필요');
       updateBGMUI();
-    }).catch(e=>{
-      console.log('Play blocked', e);
-      isLoading = false;
-      alert('브라우저가 자동재생을 막았어요. 한 번 더 눌러주세요!');
-      updateBGMUI();
-    });
+      return;
+    }
+    
+    const url = urlsToTry[urlIndex];
+    console.log('Trying BGM url:', url);
+    a.src = url;
+    a.volume = bgmVol;
+    a.load();
+    
+    const playPromise = a.play();
+    if(playPromise){
+      playPromise.then(()=>{
+        isLoading = false;
+        isPlaying = true;
+        updateBGMUI();
+        console.log('BGM playing:', url);
+      }).catch(e=>{
+        console.log('Play failed for', url, e);
+        if(urlIndex < urlsToTry.length - 1){
+          tryUrl(urlIndex + 1);
+        } else {
+          isLoading = false;
+          alert('재생 차단됨 - 한 번 더 눌러주세요!');
+          updateBGMUI();
+        }
+      });
+    }
   }
+  
+  tryUrl(0);
 }
 
-function stopBGM(){
-  if(audioEl){
-    audioEl.pause();
-  }
-  isPlaying = false;
-  updateBGMUI();
-}
+function stopBGM(){ if(audioEl){ audioEl.pause(); } isPlaying = false; updateBGMUI(); }
 
 function requestBGM(action, data){
   if(!isHost){ alert('🎵 BGM은 방장만 조작 가능 👑'); return; }
   socket.emit('bgmControl', {roomId, action, data});
 }
 
-function toggleBGM(){
-  if(!isHost){ alert('방장만 가능'); return; }
-  requestBGM('toggle');
-}
+function toggleBGM(){ if(!isHost){ alert('방장만 가능'); return; } requestBGM('toggle'); }
 
 function setBGMVol(v){
   if(!isHost) return;
   bgmVol = parseFloat(v);
-  
-  if(audioEl){
-    audioEl.volume = bgmVol;
-  }
-  
+  if(audioEl){ audioEl.volume = bgmVol; }
   const volLabel = document.getElementById('volLabel');
   const volLabel2 = document.getElementById('volLabel2');
   if(volLabel) volLabel.textContent = Math.round(bgmVol*100)+'%';
   if(volLabel2) volLabel2.textContent = Math.round(bgmVol*100)+'%';
-  
   if(volumeDebounceTimer) clearTimeout(volumeDebounceTimer);
-  volumeDebounceTimer = setTimeout(()=>{
-    socket.emit('bgmControl', {roomId, action: 'volume', data: {vol: bgmVol}});
-    volumeDebounceTimer = null;
-  }, 500);
+  volumeDebounceTimer = setTimeout(()=>{ socket.emit('bgmControl', {roomId, action: 'volume', data: {vol: bgmVol}}); volumeDebounceTimer=null; }, 500);
 }
 
-function selectBGM(idx){
-  if(!isHost){ alert('방장만 곡 변경 가능'); return; }
-  console.log('selectBGM', idx);
-  requestBGM('select', {idx});
-}
+function selectBGM(idx){ if(!isHost){ alert('방장만 곡 변경 가능'); return; } console.log('selectBGM', idx); requestBGM('select', {idx}); }
 
 function applyBGMState(state){
-  console.log('applyBGMState', state);
-  const newIdx = state.idx ?? 0;
-  const newVol = state.vol ?? 0.15;
-  const newPlaying = state.isPlaying ?? false;
-  
-  // 볼륨은 내가 조절 중이면 덮어쓰지 않음
-  if(!volumeDebounceTimer){
-    bgmVol = newVol;
-    if(audioEl) audioEl.volume = bgmVol;
-  }
-  
-  const idxChanged = currentBGM !== newIdx;
-  const playStateChanged = isPlaying !== newPlaying;
-  
-  currentBGM = newIdx;
-  
+  currentBGM = state.idx ?? 0;
+  if(!volumeDebounceTimer){ bgmVol = state.vol ?? 0.15; if(audioEl) audioEl.volume = bgmVol; }
+  const wasPlaying = isPlaying;
+  isPlaying = state.isPlaying ?? false;
   initAudio();
-  
-  if(newPlaying){
-    if(idxChanged || playStateChanged){
-      playBGM(currentBGM);
-    }
-  } else {
-    if(playStateChanged){
-      stopBGM();
-    }
-  }
-  
-  // 볼륨이 바뀌었는데 내가 조절 중이 아닐 때만 반영
-  if(!volumeDebounceTimer && audioEl){
-    audioEl.volume = bgmVol;
-  }
-  
+  if(state.isPlaying && !wasPlaying){ playBGM(currentBGM); }
+  else if(!state.isPlaying && wasPlaying){ stopBGM(); }
+  else if(state.isPlaying && state.idx !== currentBGM){ playBGM(state.idx); }
+  isPlaying = state.isPlaying;
   updateBGMUI();
 }
 
@@ -256,14 +228,9 @@ function updateBGMUI(){
   const playBtn = document.getElementById('bgmPlayBtn');
   const track = document.getElementById('bgmTrack');
   const volLabel = document.getElementById('volLabel');
-  const loadingEl = document.getElementById('bgmLoading');
-  
   if(playBtn){
-    if(isLoading){
-      playBtn.textContent = '⏳';
-    } else {
-      playBtn.textContent = isPlaying ? '⏸️' : '🎵';
-    }
+    if(isLoading){ playBtn.textContent = '⏳'; }
+    else{ playBtn.textContent = isPlaying ? '⏸️' : '🎵'; }
     playBtn.classList.toggle('active', isPlaying);
     playBtn.disabled = !isHost;
   }
@@ -272,26 +239,15 @@ function updateBGMUI(){
     if(!isHost) txt += ' (방장 전용)';
     track.textContent = txt;
   }
-  if(volLabel && !volumeDebounceTimer){
-    volLabel.textContent = Math.round(bgmVol*100)+'%';
-  }
-  if(loadingEl){
-    loadingEl.style.display = isLoading ? 'inline' : 'none';
-  }
-  
+  if(volLabel && !volumeDebounceTimer){ volLabel.textContent = Math.round(bgmVol*100)+'%'; }
   document.querySelectorAll('.bgmOption').forEach((el,i)=>{
     el.classList.toggle('active', i===currentBGM);
     el.style.opacity = isHost ? '1' : '0.6';
   });
-  
   const badge = document.getElementById('bgmHostBadge');
   if(badge) badge.style.display = isHost ? 'inline-block' : 'none';
-  
   const action = document.getElementById('bgmAction');
-  if(action){
-    if(isLoading) action.textContent = '로딩중...';
-    else action.textContent = isPlaying ? '일시정지 (방장)' : '재생하기 (방장)';
-  }
+  if(action){ if(isLoading) action.textContent = '로딩중...'; else action.textContent = isPlaying ? '일시정지 (방장)' : '재생하기 (방장)'; }
 }
 
 function closeAllSheets(){ document.getElementById('clipSheet')?.classList.remove('show'); document.getElementById('bgmSheet')?.classList.remove('show'); document.getElementById('overlay')?.classList.remove('show'); }
@@ -311,6 +267,7 @@ function renderLogin(){
  appEl.innerHTML=\`
  <div class="login">
   <div style="display:flex;justify-content:space-between;align-items:center"><h1>🐣 실시간 채팅</h1><div class="iconCircle" onclick="toggleTheme()">\${theme==='dark'?'☀️':'🌙'}</div></div>
+  <p style="color:#888;font-size:12px">내가 올린 카페음악 5곡으로 작동!</p>
   <input id="nameIn" placeholder="내 이름" />
   <div><p style="font-size:13px;margin-bottom:8px">내 캐릭터</p><div class="chars" id="chars"></div></div>
   <input id="roomIn" placeholder="방 이름" value="main-room"/>
@@ -364,7 +321,7 @@ function updateHeader(){
 function renderChat(){
  const tabs = Object.keys(EMOJI_GROUPS).map((k,i)=>\`<button class="qTab \${i==0?'active':''}" onclick="switchTab(this,'\${k}')">\${k}</button>\`).join('');
  const firstGroup = EMOJI_GROUPS[Object.keys(EMOJI_GROUPS)[0]].map(e=>emojiBtnHtml(e)).join('');
- const bgmOptions = BGM_LIST.map((b,i)=>\`<div class="bgmOption \${i===currentBGM?'active':''}" onclick="selectBGM(\${i})"><div><b>\${b.name}</b><br><span style="font-size:11px;color:#888">\${b.desc} · 진짜 음악</span></div><div>\${i===currentBGM?'✅':''}</div></div>\`).join('');
+ const bgmOptions = BGM_LIST.map((b,i)=>\`<div class="bgmOption \${i===currentBGM?'active':''}" onclick="selectBGM(\${i})"><div><b>\${b.name}</b><br><span style="font-size:11px;color:#888">public/bgm\${i+1}.mp3</span></div><div>\${i===currentBGM?'✅':''}</div></div>\`).join('');
  appEl.innerHTML=\`
   <div class="header">
     <b><span id="crown" class="crown">👑 방장</span> \${myInfo.character} \${myInfo.username}</b>
@@ -377,7 +334,6 @@ function renderChat(){
     <button class="bgmBtn" id="bgmPlayBtn" onclick="toggleBGM()">🎵</button>
     <div class="track" id="bgmTrack" onclick="openBGMSheet()">\${BGM_LIST[currentBGM].name}</div>
     <span id="bgmHostBadge" class="badge" style="display:none">방장 전용</span>
-    <span id="bgmLoading" class="loading" style="display:none">로딩</span>
     <input type="range" id="volRange" min="0" max="0.5" step="0.01" value="\${bgmVol}" oninput="setBGMVol(this.value)" onchange="setBGMVol(this.value)"/>
     <span style="font-size:10px;color:#888" id="volLabel">\${Math.round(bgmVol*100)}%</span>
     <button class="bgmBtn" onclick="openBGMSheet()">⋯</button>
@@ -399,8 +355,8 @@ function renderChat(){
     <button class="sheetBtn" id="btnFile"><div class="ico">📄</div><div><b>파일 보내기</b><br><span style="font-size:11px;color:#888">10MB 이하</span></div></button>
   </div>
   <div class="bgmSheet" id="bgmSheet">
-    <div class="sheetHeader"><span>🎵 배경음악 5종 <span class="badge">방장 전용</span></span><button onclick="closeAllSheets()" style="border:none;background:none;font-size:20px;color:var(--text)">✕</button></div>
-    <p style="font-size:11px;color:#888">👑 방장만 조작 · 진짜 음악 · 볼륨 도배 없음</p>
+    <div class="sheetHeader"><span>🎵 내 카페음악 5곡 <span class="badge">방장 전용</span></span><button onclick="closeAllSheets()" style="border:none;background:none;font-size:20px;color:var(--text)">✕</button></div>
+    <p style="font-size:11px;color:#888">👑 방장만 조작 · 내가 올린 음악 · 볼륨 도배 없음</p>
     \${bgmOptions}
     <div style="display:flex;gap:8px;align-items:center;margin-top:8px"><span style="font-size:11px">볼륨:</span><input type="range" id="volRange2" min="0" max="0.5" step="0.01" value="\${bgmVol}" oninput="setBGMVol(this.value)" onchange="setBGMVol(this.value)" style="flex:1"/><span style="font-size:11px" id="volLabel2">\${Math.round(bgmVol*100)}%</span></div>
     <button class="sheetBtn" onclick="toggleBGM()"><div class="ico">🎵</div><div><b id="bgmAction">재생하기</b><br><span style="font-size:11px;color:#888">방장 전용</span></div></button>
@@ -520,6 +476,16 @@ renderLogin();
 </html>`;
 
 app.get('/', (req,res)=> res.send(HTML));
+
+// BGM 파일 확인용 API
+app.get('/check-bgm', (req,res)=>{
+  const fs = require('fs');
+  const publicPath = path.join(__dirname, 'public');
+  let files = [];
+  try{ files = fs.readdirSync(publicPath); }catch(e){ files = ['public 폴더 없음']; }
+  res.json({publicPath, files, bgmFiles: files.filter(f=>f.startsWith('bgm'))});
+});
+
 let rooms = {};
 io.on('connection', (socket)=>{
   socket.on('joinRoom', (data)=>{
@@ -539,8 +505,8 @@ io.on('connection', (socket)=>{
     if(room.hostId !== socket.id){ return; }
     const state = room.bgmState;
     let shouldBroadcastSystem = false; let systemMsg = '';
-    if(data.action === 'toggle'){ state.isPlaying = !state.isPlaying; shouldBroadcastSystem = true; systemMsg = `🎵 BGM: ${['로파이1','카페 로파이','빗소리 피아노','새벽 재즈','숲속 힐링'][state.idx]} ${state.isPlaying ? '▶️ 재생' : '⏸️ 정지'} (방장)`; }
-    else if(data.action === 'select'){ const idx = data.data.idx; if(idx >=0 && idx < 5){ state.idx = idx; state.isPlaying = true; shouldBroadcastSystem = true; systemMsg = `🎵 BGM: ${['로파이1','카페 로파이','빗소리 피아노','새벽 재즈','숲속 힐링'][state.idx]} ▶️ 재생 (방장)`; } }
+    if(data.action === 'toggle'){ state.isPlaying = !state.isPlaying; shouldBroadcastSystem = true; systemMsg = `🎵 BGM: 카페음악 \${state.idx+1} \${state.isPlaying ? '▶️ 재생' : '⏸️ 정지'} (방장)`; }
+    else if(data.action === 'select'){ const idx = data.data.idx; if(idx >=0 && idx < 5){ state.idx = idx; state.isPlaying = true; shouldBroadcastSystem = true; systemMsg = `🎵 BGM: 카페음악 \${state.idx+1} ▶️ 재생 (방장)`; } }
     else if(data.action === 'volume'){ state.vol = Math.min(0.5, Math.max(0, data.data.vol)); shouldBroadcastSystem = false; }
     io.to(data.roomId).emit('bgmState', state);
     if(shouldBroadcastSystem){ io.to(data.roomId).emit('systemMessage', systemMsg); }
@@ -591,4 +557,4 @@ app.get('/export', (req,res)=>{
   const text = all.map(m=>`[${new Date(m.id).toLocaleString('ko-KR')}] ${m.character} ${m.username}${m.isHost?'👑':''}: ${m.text||m.fileName}`).join('\\n');
   res.type('text/plain').send(text);
 });
-server.listen(PORT, ()=> console.log(`✅ Real music on ${PORT}`));
+server.listen(PORT, ()=> console.log(`✅ Your 5 BGM files on ${PORT}`));
