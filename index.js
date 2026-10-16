@@ -12,40 +12,57 @@ const HTML = `<!DOCTYPE html>
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
-<title>실시간 채팅 - 버그 수정</title>
+<title>실시간 채팅 - 사진 클릭 수정</title>
 <style>
 :root{--bg:#fff;--header:rgba(255,255,255,.92);--msgBg:#ABC1D1;--my:#FEE500;--other:#fff;--text:#111;--border:#eee;--inputBg:#f2f2f2;--sheet:#fff}
 [data-theme="dark"]{--bg:#121212;--header:rgba(18,18,18,.92);--msgBg:#0f1419;--my:#FEE500;--other:#2a2f36;--text:#e8e8e8;--border:#2a2a2a;--inputBg:#1e1e1e;--sheet:#1e1e1e}
-*{margin:0;padding:0;box-sizing:border-box}
+*{margin:0;padding:0;box-sizing:border-box; -webkit-tap-highlight-color: transparent}
 body{font-family:-apple-system,BlinkMacSystemFont,'Apple SD Gothic Neo','Noto Sans KR',sans-serif;background:var(--bg);color:var(--text);height:100dvh;display:flex;justify-content:center;align-items:center;padding-top:env(safe-area-inset-top)}
 .app{width:100%;max-width:420px;height:100dvh;height:calc(100dvh - env(safe-area-inset-top));background:var(--bg);display:flex;flex-direction:column;position:relative;overflow:hidden}
 @media(min-width:500px){.app{height:90dvh;border-radius:24px;box-shadow:0 10px 40px rgba(0,0,0,.25)}}
 .header{background:var(--header);backdrop-filter:blur(20px);padding:10px 14px;display:flex;justify-content:space-between;align-items:center;border-bottom:1px solid var(--border)}
-.header b{font-size:13px;display:flex;align-items:center;gap:5px}
+.header b{font-size:12px;display:flex;align-items:center;gap:4px}
 .crown{font-size:10px;background:#FFD700;color:#000;padding:2px 6px;border-radius:10px;font-weight:800;display:none}
 .crown.show{display:inline-block}
-.right{display:flex;gap:5px;align-items:center}
+.right{display:flex;gap:4px;align-items:center}
 .btnTop{padding:5px 9px;border-radius:20px;border:1px solid var(--border);background:var(--inputBg);font-size:11px;font-weight:600;cursor:pointer;color:var(--text)}
 .btnTop.save{background:#000;color:#fff;border-color:#000;display:none}
 .btnTop.save.show{display:block}
 [data-theme="dark"] .btnTop.save{background:#fff;color:#000}
 .iconCircle{width:30px;height:30px;border-radius:50%;border:1px solid var(--border);background:var(--inputBg);display:grid;place-items:center;cursor:pointer;font-size:14px}
-.login{flex:1;display:flex;flex-direction:column;justify-content:center;padding:28px;gap:14px;background:var(--bg)}
+.login{flex:1;display:flex;flex-direction:column;justify-content:center;padding:24px;gap:12px;background:var(--bg);overflow-y:auto}
 .login input{padding:14px;border:1px solid var(--border);border-radius:12px;font-size:16px;background:var(--inputBg);color:var(--text)}
 .login button{padding:14px;background:#FEE500;border:none;border-radius:12px;font-weight:700;font-size:16px;cursor:pointer;color:#000}
 .chars{display:flex;gap:8px;flex-wrap:wrap}
 .char{width:42px;height:42px;border-radius:50%;display:grid;place-items:center;font-size:20px;background:var(--inputBg);cursor:pointer;border:2px solid transparent}
 .char.sel{border-color:#000;background:#FEE500;color:#000}
 .messages{flex:1;overflow-y:auto;padding:16px;background:var(--msgBg);display:flex;flex-direction:column;gap:10px}
-.msg{max-width:80%;padding:10px 14px;border-radius:18px;font-size:14px;line-height:1.5;white-space:pre-wrap;word-break:keep-all;color:#111;animation:pop .2s}
-@keyframes pop{from{transform:scale(.92);opacity:0}to{transform:scale(1);opacity:1}}
+.msg{max-width:80%;padding:10px 14px;border-radius:18px;font-size:14px;line-height:1.5;white-space:pre-wrap;word-break:keep-all;color:#111;position:relative}
 .msg.me{align-self:flex-end;background:var(--my);border-bottom-right-radius:4px}
 .msg.other{align-self:flex-start;background:var(--other);border-bottom-left-radius:4px}
 [data-theme="dark"] .msg.other{color:#e8e8e8}
 .sender{font-size:11px;font-weight:700;margin-bottom:3px;display:flex;align-items:center;gap:4px}
 .meta{font-size:10px;color:#555;margin-top:3px;text-align:right}
 .system{align-self:center;background:rgba(0,0,0,.28);color:#fff;padding:5px 12px;border-radius:20px;font-size:11px}
-.msg img.preview{max-width:200px;max-height:200px;border-radius:12px;margin-top:6px;display:block;cursor:pointer;object-fit:cover}
+/* 사진 - 클릭 가능하게 수정 */
+.msg img.preview{
+  max-width:200px;
+  max-height:200px;
+  border-radius:12px;
+  margin-top:8px;
+  display:block;
+  cursor:pointer;
+  object-fit:cover;
+  border:2px solid transparent;
+  transition:.15s;
+  pointer-events:auto;
+  touch-action: manipulation;
+}
+.msg img.preview:active{transform:scale(.97);border-color:#000}
+.msg img.preview:hover{border-color:rgba(0,0,0,.2)}
+.photoHint{font-size:10px;color:#666;margin-top:4px;display:flex;align-items:center;gap:3px}
+[data-theme="dark"] .photoHint{color:#aaa}
+
 .emojiBar{display:flex;gap:6px;padding:7px 10px;background:var(--bg);border-top:1px solid var(--border);overflow-x:auto;white-space:nowrap;scrollbar-width:none}
 .emojiBar::-webkit-scrollbar{display:none}
 .eBtn{flex-shrink:0;height:32px;padding:0 9px;border-radius:18px;border:1px solid var(--border);background:var(--inputBg);font-size:11px;cursor:pointer;display:inline-flex;align-items:center;gap:3px;color:var(--text)}
@@ -53,7 +70,7 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Apple SD Gothic Neo','Noto Sa
 .qTab{font-size:10px;padding:3px 8px;border-radius:12px;border:1px solid var(--border);background:var(--bg);cursor:pointer;color:var(--text)}
 .qTab.active{background:#000;color:#fff;border-color:#000}
 [data-theme="dark"] .qTab.active{background:#fff;color:#000}
-.clipSheet,.bgmSheet{position:absolute;left:0;right:0;bottom:0;background:var(--sheet);border-top-left-radius:20px;border-top-right-radius:20px;box-shadow:0 -10px 30px rgba(0,0,0,.3);z-index:100;padding:16px;display:none;flex-direction:column;gap:12px}
+.clipSheet,.bgmSheet{position:absolute;left:0;right:0;bottom:0;background:var(--sheet);border-top-left-radius:20px;border-top-right-radius:20px;box-shadow:0 -10px 30px rgba(0,0,0,.3);z-index:100;padding:16px;display:none;flex-direction:column;gap:10px;max-height:70%;overflow-y:auto}
 .clipSheet.show,.bgmSheet.show{display:flex}
 .sheetHeader{display:flex;justify-content:space-between;align-items:center;font-weight:700;font-size:14px}
 .sheetBtn{display:flex;align-items:center;gap:12px;padding:12px;border:1px solid var(--border);border-radius:14px;background:var(--bg);cursor:pointer;width:100%;color:var(--text)}
@@ -71,12 +88,24 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Apple SD Gothic Neo','Noto Sa
 .pCount{font-size:10px;color:#888;margin-left:8px;white-space:nowrap}
 .bgmBar{display:flex;align-items:center;gap:8px;padding:6px 12px;background:var(--bg);border-bottom:1px solid var(--border);font-size:11px}
 .bgmBar .track{flex:1;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;color:#888;cursor:pointer}
-.bgmControls{display:flex;gap:6px;align-items:center}
 .bgmBtn{width:28px;height:28px;border-radius:50%;border:1px solid var(--border);background:var(--inputBg);display:grid;place-items:center;cursor:pointer;font-size:12px}
 .bgmBtn.active{background:#000;color:#fff;border-color:#000}
+.bgmBtn:disabled{opacity:.4;cursor:not-allowed}
 input[type=range]{width:60px;height:4px;accent-color:#000}
-.bgmOption{display:flex;justify-content:space-between;align-items:center;padding:12px;border:1px solid var(--border);border-radius:12px;background:var(--bg);cursor:pointer}
-.bgmOption.active{border-color:#000;background:var(--inputBg)}
+.bgmOption{display:flex;justify-content:space-between;align-items:center;padding:12px;border:1px solid var(--border);border-radius:12px;background:var(--bg);cursor:pointer;transition:.15s}
+.bgmOption.active{border-color:#000;background:#000;color:#fff}
+.bgmOption.active span{color:#ccc!important}
+[data-theme="dark"] .bgmOption.active{background:#fff;color:#000}
+.badge{font-size:9px;background:#FFD700;color:#000;padding:2px 5px;border-radius:8px;font-weight:700;margin-left:6px}
+
+/* 사진 확대 모달 - 마우스/터치 모두 대응 */
+.photoModal{position:absolute;inset:0;background:rgba(0,0,0,.9);z-index:200;display:none;flex-direction:column;align-items:center;justify-content:center;padding:20px}
+.photoModal.show{display:flex}
+.photoModal img{max-width:90%;max-height:70%;border-radius:16px;object-fit:contain;box-shadow:0 10px 40px rgba(0,0,0,.5)}
+.photoModal .info{color:#fff;font-size:12px;margin-top:12px;text-align:center}
+.photoModal .closeBtn{position:absolute;top:16px;right:16px;width:36px;height:36px;border-radius:50%;background:rgba(255,255,255,.2);border:none;color:#fff;font-size:18px;cursor:pointer;display:grid;place-items:center}
+.photoModal .actionBar{display:flex;gap:8px;margin-top:16px}
+.photoModal .actionBtn{padding:8px 14px;border-radius:20px;border:1px solid rgba(255,255,255,.3);background:rgba(255,255,255,.15);color:#fff;font-size:12px;cursor:pointer}
 </style>
 </head>
 <body>
@@ -89,14 +118,16 @@ let theme = localStorage.getItem('chatTheme') || (window.matchMedia('(prefers-co
 document.documentElement.setAttribute('data-theme', theme);
 
 const BGM_LIST = [
-  {id:'lofi', name:'🌙 조용한 로파이', desc:'공부·작업용', url:'https://cdn.pixabay.com/audio/2022/05/27/audio_1808fbf07a.mp3'},
-  {id:'rain', name:'🌧️ 빗소리 + 피아노', desc:'비 오는 날', url:'https://cdn.pixabay.com/audio/2022/03/24/audio_4d7d87fc38.mp3'},
-  {id:'night', name:'🌃 새벽 카페', desc:'재즈 피아노', url:'https://cdn.pixabay.com/audio/2022/10/30/audio_fbd14dd40e.mp3'}
+  {id:'lofi1', name:'🌙 조용한 로파이 1', desc:'공부용', url:'https://cdn.pixabay.com/audio/2022/05/27/audio_1808fbf07a.mp3'},
+  {id:'lofi2', name:'☕ 카페 로파이', desc:'보사노바', url:'https://cdn.pixabay.com/audio/2023/06/26/audio_7f0f5e4f2c.mp3'},
+  {id:'rain', name:'🌧️ 빗소리 피아노', desc:'비오는 날', url:'https://cdn.pixabay.com/audio/2024/08/02/audio_b9bd4170e8.mp3'},
+  {id:'night', name:'🌃 새벽 재즈', desc:'졸릴 때', url:'https://cdn.pixabay.com/audio/2023/03/14/audio_8d4cb3f2cc.mp3'},
+  {id:'forest', name:'🍃 숲속 바람', desc:'힐링', url:'https://cdn.pixabay.com/audio/2022/10/30/audio_fbd14dd40e.mp3'}
 ];
-let currentBGM = parseInt(localStorage.getItem('bgmIdx')||'0');
+let currentBGM = 0;
 let audioEl = null;
 let isPlaying = false;
-let bgmVol = parseFloat(localStorage.getItem('bgmVol') || '0.15');
+let bgmVol = 0.15;
 
 function initAudio(){
   if(audioEl) return audioEl;
@@ -107,42 +138,70 @@ function initAudio(){
   audioEl.crossOrigin = 'anonymous';
   audioEl.addEventListener('play', ()=>{ isPlaying=true; updateBGMUI(); });
   audioEl.addEventListener('pause', ()=>{ isPlaying=false; updateBGMUI(); });
+  audioEl.addEventListener('error', (e)=>{ console.log('BGM error', e); });
   return audioEl;
 }
-function toggleBGM(){
+function requestBGM(action, data){
+  if(!isHost){ alert('🎵 BGM은 방장만 조작 가능 👑'); return; }
+  socket.emit('bgmControl', {roomId, action, data});
+}
+function toggleBGM(){ if(!isHost){ alert('방장만 가능'); return; } requestBGM('toggle'); }
+function setBGMVol(v){ if(!isHost) return; bgmVol = parseFloat(v); requestBGM('volume', {vol: bgmVol}); }
+function selectBGM(idx){ if(!isHost){ alert('방장만 곡 변경 가능'); return; } requestBGM('select', {idx}); }
+function applyBGMState(state){
+  currentBGM = state.idx ?? 0;
+  bgmVol = state.vol ?? 0.15;
+  isPlaying = state.isPlaying ?? false;
   const a = initAudio();
-  if(isPlaying){ a.pause(); }
-  else {
-    a.src = BGM_LIST[currentBGM].url;
-    a.volume = bgmVol;
-    a.play().catch(e=>{ alert('브라우저가 막았어요. 다시 눌러주세요!'); console.log(e); });
-  }
-}
-function setBGMVol(v){
-  bgmVol = parseFloat(v);
-  localStorage.setItem('bgmVol', bgmVol);
-  if(audioEl) audioEl.volume = bgmVol;
-  document.querySelectorAll('#volLabel, #volLabel2').forEach(el=>{ if(el) el.textContent = Math.round(bgmVol*100)+'%'; });
-}
-function selectBGM(idx){
-  currentBGM = idx;
-  localStorage.setItem('bgmIdx', idx);
-  if(audioEl && isPlaying){ audioEl.src = BGM_LIST[idx].url; audioEl.play(); }
+  a.volume = bgmVol;
+  if(isPlaying){ if(a.src !== BGM_LIST[currentBGM].url){ a.src = BGM_LIST[currentBGM].url; } a.play().catch(e=>{ console.log('play blocked', e); }); }
+  else{ a.pause(); }
   updateBGMUI();
-  closeAllSheets();
 }
 function updateBGMUI(){
   const playBtn = document.getElementById('bgmPlayBtn');
   const track = document.getElementById('bgmTrack');
-  if(playBtn){ playBtn.textContent = isPlaying ? '⏸️' : '🎵'; playBtn.classList.toggle('active', isPlaying); }
-  if(track) track.textContent = (isPlaying ? '▶️ ' : '⏸️ ') + BGM_LIST[currentBGM].name;
-  document.querySelectorAll('.bgmOption').forEach((el,i)=>{ el.classList.toggle('active', i===currentBGM); });
-  const action = document.getElementById('bgmAction');
-  if(action) action.textContent = isPlaying ? '일시정지' : '재생하기';
+  const volLabel = document.getElementById('volLabel');
+  if(playBtn){ playBtn.textContent = isPlaying ? '⏸️' : '🎵'; playBtn.classList.toggle('active', isPlaying); playBtn.disabled = !isHost; }
+  if(track) track.textContent = (isPlaying ? '▶️ ' : '⏸️ ') + BGM_LIST[currentBGM].name + (isHost ? '' : ' (방장 전용)');
+  if(volLabel) volLabel.textContent = Math.round(bgmVol*100)+'%';
+  const volLabel2 = document.getElementById('volLabel2');
+  if(volLabel2) volLabel2.textContent = Math.round(bgmVol*100)+'%';
+  document.querySelectorAll('.bgmOption').forEach((el,i)=>{ el.classList.toggle('active', i===currentBGM); el.style.opacity = isHost ? '1' : '0.6'; });
+  document.getElementById('bgmHostBadge').style.display = isHost ? 'inline-block' : 'none';
 }
+
 function closeAllSheets(){ document.getElementById('clipSheet')?.classList.remove('show'); document.getElementById('bgmSheet')?.classList.remove('show'); document.getElementById('overlay')?.classList.remove('show'); }
 function openClip(){ document.getElementById('clipSheet').classList.add('show'); document.getElementById('overlay').classList.add('show'); }
 function openBGMSheet(){ document.getElementById('bgmSheet').classList.add('show'); document.getElementById('overlay').classList.add('show'); updateBGMUI(); }
+
+// 사진 모달 - 마우스/터치 모두 작동
+let currentPhotoUrl = '';
+let currentPhotoName = '';
+function openPhotoModal(url, name){
+  currentPhotoUrl = url;
+  currentPhotoName = name;
+  const modal = document.getElementById('photoModal');
+  const img = document.getElementById('modalImg');
+  const info = document.getElementById('modalInfo');
+  img.src = url;
+  info.textContent = name + ' - 클릭하면 닫힘 / 다운로드 가능';
+  modal.classList.add('show');
+  console.log('openPhotoModal', name);
+}
+function closePhotoModal(){
+  document.getElementById('photoModal').classList.remove('show');
+  currentPhotoUrl = '';
+}
+function downloadCurrentPhoto(){
+  if(!currentPhotoUrl) return;
+  const a = document.createElement('a');
+  a.href = currentPhotoUrl;
+  a.download = currentPhotoName || 'photo.jpg';
+  document.body.appendChild(a);
+  a.click();
+  document.body.removeChild(a);
+}
 
 const EMOJI_GROUPS = {
   '반응': ['👍 좋아요','❤️ 하트','😂 웃겨','😢 슬퍼요','👏 짝짝'],
@@ -162,7 +221,7 @@ function renderLogin(){
  appEl.innerHTML=\`
  <div class="login">
   <div style="display:flex;justify-content:space-between;align-items:center"><h1>🐣 채팅 입장</h1><div class="iconCircle" onclick="toggleTheme()">\${theme==='dark'?'☀️':'🌙'}</div></div>
-  <p style="color:#888;font-size:12px">버그 수정: 엔터 + 사진 업로드 OK</p>
+  <p style="color:#888;font-size:12px">사진 클릭 확대 수정 완료</p>
   <input id="nameIn" placeholder="내 이름" />
   <div><p style="font-size:13px;margin-bottom:8px">내 캐릭터</p><div class="chars" id="chars"></div></div>
   <input id="roomIn" placeholder="방 이름" value="main-room"/>
@@ -190,8 +249,6 @@ function enter(){
 
 function initSocket(){
  socket = io({transports:['websocket','polling']});
- socket.on('connect', ()=>{ console.log('connected', socket.id); });
- socket.on('connect_error', (e)=>{ console.log('connect error', e); });
  socket.emit('joinRoom', myInfo);
  socket.on('roomInfo', (info)=>{
    isHost = info.isHost;
@@ -199,11 +256,13 @@ function initSocket(){
    myInfo.socketId = info.mySocketId;
    updateHeader();
    renderParticipants(info.participants, info.hostId);
+   if(info.bgmState) applyBGMState(info.bgmState);
  });
  socket.on('chatMessage', addMsg);
  socket.on('fileMessage', addFileMsg);
  socket.on('systemMessage', (txt)=> addSystem(txt));
- socket.on('participantsUpdate', (data)=> renderParticipants(data.participants, data.hostId));
+ socket.on('participantsUpdate', (data)=>{ renderParticipants(data.participants, data.hostId); });
+ socket.on('bgmState', (state)=>{ applyBGMState(state); });
 }
 
 function updateHeader(){
@@ -216,7 +275,11 @@ function updateHeader(){
 function renderChat(){
  const tabs = Object.keys(EMOJI_GROUPS).map((k,i)=>\`<button class="qTab \${i==0?'active':''}" onclick="switchTab(this,'\${k}')">\${k}</button>\`).join('');
  const firstGroup = EMOJI_GROUPS[Object.keys(EMOJI_GROUPS)[0]].map(e=>emojiBtnHtml(e)).join('');
- const bgmOptions = BGM_LIST.map((b,i)=>\`<div class="bgmOption \${i===currentBGM?'active':''}" onclick="selectBGM(\${i})"><div><b>\${b.name}</b><br><span style="font-size:11px;color:#888">\${b.desc}</span></div><div>\${i===currentBGM?'✅':''}</div></div>\`).join('');
+ const bgmOptions = BGM_LIST.map((b,i)=>\`
+   <div class="bgmOption \${i===currentBGM?'active':''}" onclick="selectBGM(\${i})">
+     <div><b>\${b.name}</b><br><span style="font-size:11px;color:#888">\${b.desc}</span></div>
+     <div>\${i===currentBGM?'✅':''}</div>
+   </div>\`).join('');
  appEl.innerHTML=\`
   <div class="header">
     <b><span id="crown" class="crown">👑 방장</span> \${myInfo.character} \${myInfo.username}</b>
@@ -228,7 +291,8 @@ function renderChat(){
   <div class="bgmBar">
     <button class="bgmBtn" id="bgmPlayBtn" onclick="toggleBGM()">🎵</button>
     <div class="track" id="bgmTrack" onclick="openBGMSheet()">\${BGM_LIST[currentBGM].name}</div>
-    <input type="range" min="0" max="0.5" step="0.01" value="\${bgmVol}" oninput="setBGMVol(this.value)"/>
+    <span id="bgmHostBadge" class="badge" style="display:none">방장 전용</span>
+    <input type="range" id="volRange" min="0" max="0.5" step="0.01" value="\${bgmVol}" oninput="setBGMVol(this.value)"/>
     <span style="font-size:10px;color:#888" id="volLabel">\${Math.round(bgmVol*100)}%</span>
     <button class="bgmBtn" onclick="openBGMSheet()">⋯</button>
   </div>
@@ -237,27 +301,43 @@ function renderChat(){
   <div class="quickTabs">\${tabs}</div>
   <div class="emojiBar" id="emojiBar">\${firstGroup}</div>
   <div class="overlay" id="overlay" onclick="closeAllSheets()"></div>
+  
+  <!-- 사진 확대 모달 -->
+  <div class="photoModal" id="photoModal" onclick="closePhotoModal()">
+    <button class="closeBtn" onclick="closePhotoModal()">✕</button>
+    <img id="modalImg" src="" alt="확대 사진"/>
+    <div class="info" id="modalInfo"></div>
+    <div class="actionBar">
+      <button class="actionBtn" onclick="event.stopPropagation(); downloadCurrentPhoto()">📥 다운로드</button>
+      <button class="actionBtn" onclick="event.stopPropagation(); closePhotoModal()">닫기</button>
+    </div>
+  </div>
+  
   <div class="clipSheet" id="clipSheet">
     <div class="sheetHeader"><span>📎 보내기</span><button onclick="closeAllSheets()" style="border:none;background:none;font-size:20px;color:var(--text)">✕</button></div>
-    <button class="sheetBtn" id="btnPhoto"><div class="ico">📸</div><div><b>사진 보내기</b><br><span style="font-size:11px;color:#888">갤러리 선택 - 자동 압축</span></div></button>
+    <button class="sheetBtn" id="btnPhoto"><div class="ico">📸</div><div><b>사진 보내기</b><br><span style="font-size:11px;color:#888">터치/클릭 확대 가능</span></div></button>
     <button class="sheetBtn" id="btnFile"><div class="ico">📄</div><div><b>파일 보내기</b><br><span style="font-size:11px;color:#888">10MB 이하</span></div></button>
   </div>
   <div class="bgmSheet" id="bgmSheet">
-    <div class="sheetHeader"><span>🎵 배경음악</span><button onclick="closeAllSheets()" style="border:none;background:none;font-size:20px;color:var(--text)">✕</button></div>
+    <div class="sheetHeader"><span>🎵 배경음악 5종 <span class="badge">방장 전용</span></span><button onclick="closeAllSheets()" style="border:none;background:none;font-size:20px;color:var(--text)">✕</button></div>
+    <p style="font-size:11px;color:#888">👑 방장만 조작 가능. 다른 사람은 듣기만.</p>
     \${bgmOptions}
-    <div style="display:flex;gap:8px;align-items:center;margin-top:8px"><span style="font-size:11px">볼륨:</span><input type="range" min="0" max="0.5" step="0.01" value="\${bgmVol}" oninput="setBGMVol(this.value)" style="flex:1"/><span style="font-size:11px" id="volLabel2">\${Math.round(bgmVol*100)}%</span></div>
-    <button class="sheetBtn" onclick="toggleBGM()"><div class="ico">🎵</div><div><b id="bgmAction">재생하기</b><br><span style="font-size:11px;color:#888">클릭으로 재생/정지</span></div></button>
+    <div style="display:flex;gap:8px;align-items:center;margin-top:8px">
+      <span style="font-size:11px">볼륨:</span>
+      <input type="range" id="volRange2" min="0" max="0.5" step="0.01" value="\${bgmVol}" oninput="setBGMVol(this.value)" style="flex:1"/>
+      <span style="font-size:11px" id="volLabel2">\${Math.round(bgmVol*100)}%</span>
+    </div>
+    <button class="sheetBtn" onclick="toggleBGM()"><div class="ico">🎵</div><div><b id="bgmAction">재생하기</b><br><span style="font-size:11px;color:#888">방장 전용</span></div></button>
   </div>
   <div class="inputArea">
    <button class="iconBtn" id="clipBtn">📎</button>
    <input id="photoIn" type="file" accept="image/*" hidden/>
    <input id="fileIn" type="file" hidden/>
-   <input id="textIn" placeholder="메시지 입력 - 엔터로 전송" autocomplete="off" />
+   <input id="textIn" placeholder="메시지 입력 - 엔터" autocomplete="off" />
    <button class="iconBtn" id="emojiBtn">😊</button>
    <button class="iconBtn send" id="sendBtn">↑</button>
   </div>\`;
  
- // === 이벤트 리스너를 직접 JS로 연결 (onclick 대신 addEventListener로 - 버그 수정) ===
  document.getElementById('clipBtn').addEventListener('click', openClip);
  document.getElementById('emojiBtn').addEventListener('click', toggleEmojiBar);
  document.getElementById('sendBtn').addEventListener('click', sendText);
@@ -266,15 +346,7 @@ function renderChat(){
  
  const textIn = document.getElementById('textIn');
  textIn.focus();
- 
- // 엔터키 - 한글 조합 고려 없이 단순하게 처리 (버그 수정 핵심)
- textIn.addEventListener('keydown', (e)=>{
-   if(e.key === 'Enter'){
-     e.preventDefault();
-     sendText();
-   }
- });
- // 파일 입력
+ textIn.addEventListener('keydown', (e)=>{ if(e.key === 'Enter'){ e.preventDefault(); sendText(); } });
  document.getElementById('photoIn').addEventListener('change', (e)=>{ if(e.target.files[0]) handlePhoto(e.target.files[0]); e.target.value=''; });
  document.getElementById('fileIn').addEventListener('change', (e)=>{ if(e.target.files[0]) handleFile(e.target.files[0]); e.target.value=''; });
  
@@ -290,8 +362,7 @@ function insertEmoji(full){
   if(!inp) return;
   const toInsert = full + ' ';
   const start = inp.selectionStart ?? inp.value.length;
-  const end = inp.selectionEnd ?? inp.value.length;
-  inp.value = inp.value.slice(0,start) + toInsert + inp.value.slice(end);
+  inp.value = inp.value.slice(0,start) + toInsert + inp.value.slice(start);
   inp.focus();
   inp.selectionStart = inp.selectionEnd = start + toInsert.length;
 }
@@ -317,34 +388,52 @@ function addMsg(data){
  document.getElementById('msgs').appendChild(el); scroll();
 }
 function addSystem(txt){ const el=document.createElement('div'); el.className='system'; el.textContent=txt; document.getElementById('msgs').appendChild(el); scroll(); }
+
+// 사진 클릭 수정 - 터치/마우스 모두 작동하도록 addEventListener 사용
 function addFileMsg(data){
  const isMe = data.socketId === myInfo.socketId;
  const el=document.createElement('div'); el.className=isMe?'msg me':'msg other';
  let c=\`<div class="sender">\${data.character} \${escapeHtml(data.username)} \${data.isHost?'<span class="crown show">👑</span>':''}</div>\`;
  if(data.isImage){
-   c+=\`<img class="preview" src="\${data.dataUrl}" onclick="window.open('\${data.dataUrl}','_blank')"/>\`;
+   // ID를 부여해서 나중에 이벤트 리스너 연결
+   const imgId = 'img_' + data.id;
+   c+=\`<img class="preview" id="\${imgId}" src="\${data.dataUrl}" alt="\${escapeHtml(data.fileName)}"/><div class="photoHint">👆 터치/클릭하면 확대</div>\`;
+   setTimeout(()=>{
+     const imgEl = document.getElementById(imgId);
+     if(imgEl){
+       // 마우스 클릭 + 터치 모두 대응
+       imgEl.addEventListener('click', (e)=>{
+         e.preventDefault();
+         e.stopPropagation();
+         openPhotoModal(data.dataUrl, data.fileName);
+       });
+       imgEl.addEventListener('touchend', (e)=>{
+         e.preventDefault();
+         openPhotoModal(data.dataUrl, data.fileName);
+       }, {passive:false});
+     }
+   }, 50);
  } else {
    c+=\`<div>📄 \${escapeHtml(data.fileName)}</div><a href="\${data.dataUrl}" download="\${data.fileName}" style="font-size:12px;color:#007AFF">다운로드</a>\`;
  }
  c+=\`<div class="meta">\${new Date(data.id).toLocaleTimeString('ko-KR',{hour:'2-digit',minute:'2-digit'})}</div>\`;
- el.innerHTML=c; document.getElementById('msgs').appendChild(el); scroll();
+ el.innerHTML=c;
+ document.getElementById('msgs').appendChild(el);
+ scroll();
 }
+
 function scroll(){ const m=document.getElementById('msgs'); if(m) m.scrollTop=m.scrollHeight; }
 function sendText(){
-  const inp=document.getElementById('textIn');
-  if(!inp) return;
-  let t=inp.value.trim();
-  if(!t) return;
-  if(!socket || !socket.connected){ alert('연결 끊김 - 새로고침 해주세요'); return; }
-  console.log('sendText', t);
+  const inp=document.getElementById('textIn'); if(!inp) return;
+  let t=inp.value.trim(); if(!t) return;
+  if(!socket || !socket.connected){ alert('연결 끊김'); return; }
   socket.emit('chatMessage',{roomId, text:t});
-  inp.value='';
-  inp.focus();
+  inp.value=''; inp.focus();
 }
 function saveChat(){
   if(!isHost){ alert('방장만 저장 가능'); return; }
   socket.emit('requestExport', {roomId}, (res)=>{
-    if(!res.allowed){ alert('방장 아님 - 서버 차단'); return; }
+    if(!res.allowed){ alert('방장 아님'); return; }
     const blob = new Blob([res.data], {type:'text/plain;charset=utf-8'});
     const url = URL.createObjectURL(blob);
     const a = document.createElement('a'); a.href=url; a.download='채팅기록_' + new Date().toISOString().slice(0,10) + '_' + roomId + '.txt';
@@ -353,58 +442,34 @@ function saveChat(){
   });
 }
 function handlePhoto(file){
- if(!file){ console.log('no file'); return; }
- console.log('handlePhoto', file.name, file.size);
- if(file.size>8*1024*1024){ alert('사진은 8MB 이하만!'); return; }
+ if(!file) return;
+ if(file.size>8*1024*1024){ alert('8MB 이하만!'); return; }
  const reader=new FileReader();
- reader.onerror = (e)=>{ console.log('reader error', e); alert('파일 읽기 실패'); };
  reader.onload=()=>{
-   console.log('reader loaded');
-   // 압축 시도, 실패하면 원본 그대로
-   try{
-     const img=new Image();
-     img.onerror = ()=>{
-       console.log('img load fail, sending original');
-       socket.emit('fileMessage',{roomId, fileName:file.name, size:file.size, dataUrl:reader.result, isImage:true});
-     };
-     img.onload=()=>{
-       try{
-         const canvas=document.createElement('canvas');
-         const maxW=800;
-         let w=img.width,h=img.height;
-         if(w>maxW){ h=h*maxW/w; w=maxW; }
-         canvas.width=w; canvas.height=h;
-         const ctx=canvas.getContext('2d');
-         ctx.drawImage(img,0,0,w,h);
-         const comp=canvas.toDataURL('image/jpeg',0.7);
-         console.log('compressed, sending');
-         socket.emit('fileMessage',{roomId, fileName:file.name, size:file.size, dataUrl:comp, isImage:true});
-       }catch(err){
-         console.log('compress fail, sending original', err);
-         socket.emit('fileMessage',{roomId, fileName:file.name, size:file.size, dataUrl:reader.result, isImage:true});
-       }
-     };
-     img.src=reader.result;
-   }catch(err){
-     console.log('handlePhoto error', err);
-     socket.emit('fileMessage',{roomId, fileName:file.name, size:file.size, dataUrl:reader.result, isImage:true});
-   }
+   const img=new Image();
+   img.onerror=()=>{ socket.emit('fileMessage',{roomId, fileName:file.name, size:file.size, dataUrl:reader.result, isImage:true}); };
+   img.onload=()=>{
+     try{
+       const canvas=document.createElement('canvas');
+       const maxW=800; let w=img.width,h=img.height;
+       if(w>maxW){ h=h*maxW/w; w=maxW; }
+       canvas.width=w; canvas.height=h;
+       canvas.getContext('2d').drawImage(img,0,0,w,h);
+       const comp=canvas.toDataURL('image/jpeg',0.7);
+       socket.emit('fileMessage',{roomId, fileName:file.name, size:file.size, dataUrl:comp, isImage:true});
+     }catch(err){ socket.emit('fileMessage',{roomId, fileName:file.name, size:file.size, dataUrl:reader.result, isImage:true}); }
+   };
+   img.src=reader.result;
  };
  reader.readAsDataURL(file);
 }
 function handleFile(file){
  if(!file) return;
- console.log('handleFile', file.name, file.size);
- if(file.size>10*1024*1024){ alert('파일은 10MB 이하만!'); return; }
+ if(file.size>10*1024*1024){ alert('10MB 이하만!'); return; }
  const reader=new FileReader();
- reader.onload=()=>{
-   const isImage=file.type.startsWith('image/');
-   console.log('sending file', isImage);
-   socket.emit('fileMessage',{roomId, fileName:file.name, size:file.size, dataUrl:reader.result, isImage:isImage});
- };
+ reader.onload=()=>{ const isImage=file.type.startsWith('image/'); socket.emit('fileMessage',{roomId, fileName:file.name, size:file.size, dataUrl:reader.result, isImage:isImage}); };
  reader.readAsDataURL(file);
 }
-
 renderLogin();
 </script>
 </body>
@@ -413,21 +478,30 @@ renderLogin();
 app.get('/', (req,res)=> res.send(HTML));
 let rooms = {};
 io.on('connection', (socket)=>{
-  console.log('connect', socket.id);
   socket.on('joinRoom', (data)=>{
     const roomId = data.roomId;
-    if(!rooms[roomId]) rooms[roomId] = { hostId: socket.id, users: {}, history: [] };
+    if(!rooms[roomId]) rooms[roomId] = { hostId: socket.id, users: {}, history: [], bgmState: {idx:0, isPlaying:false, vol:0.15} };
     const room = rooms[roomId];
     const isHost = room.hostId === socket.id;
     room.users[socket.id] = { socketId: socket.id, username: data.username, character: data.character, roomId, joinedAt: Date.now() };
     socket.join(roomId);
-    console.log(`[JOIN] ${roomId} ${data.username} isHost=${isHost} hostId=${room.hostId}`);
-    socket.emit('roomInfo', { isHost, mySocketId: socket.id, hostId: room.hostId, participants: Object.values(room.users) });
+    socket.emit('roomInfo', { isHost, mySocketId: socket.id, hostId: room.hostId, participants: Object.values(room.users), bgmState: room.bgmState });
     io.to(roomId).emit('participantsUpdate', { participants: Object.values(room.users), hostId: room.hostId });
     io.to(roomId).emit('systemMessage', `${data.character} ${data.username}님이 입장하셨습니다 ${isHost ? '👑(방장)' : ''}`);
+    socket.emit('bgmState', room.bgmState);
+  });
+  socket.on('bgmControl', (data)=>{
+    const room = rooms[data.roomId];
+    if(!room){ socket.emit('bgmError','방 없음'); return; }
+    if(room.hostId !== socket.id){ socket.emit('bgmError','방장만 가능'); return; }
+    const state = room.bgmState;
+    if(data.action === 'toggle'){ state.isPlaying = !state.isPlaying; }
+    else if(data.action === 'select'){ const idx = data.data.idx; if(idx >=0 && idx < 5){ state.idx = idx; state.isPlaying = true; } }
+    else if(data.action === 'volume'){ state.vol = Math.min(0.5, Math.max(0, data.data.vol)); }
+    io.to(data.roomId).emit('bgmState', state);
+    io.to(data.roomId).emit('systemMessage', `🎵 BGM: ${['로파이1','카페 로파이','빗소리 피아노','새벽 재즈','숲속 바람'][state.idx]} ${state.isPlaying ? '▶️' : '⏸️'} (방장)`);
   });
   socket.on('chatMessage', (data)=>{
-    console.log('chatMessage', data);
     const room = rooms[data.roomId]; if(!room) return; const user=room.users[socket.id]; if(!user) return;
     const isHost = room.hostId === socket.id;
     const msg={ socketId: socket.id, username: user.username, character: user.character, roomId: data.roomId, text: data.text, isHost, id: Date.now() };
@@ -435,7 +509,6 @@ io.on('connection', (socket)=>{
     io.to(data.roomId).emit('chatMessage', msg);
   });
   socket.on('fileMessage', (data)=>{
-    console.log('fileMessage', data.fileName, data.size);
     const room = rooms[data.roomId]; if(!room) return; const user=room.users[socket.id]; if(!user) return;
     const isHost = room.hostId === socket.id;
     io.to(data.roomId).emit('fileMessage', { socketId: socket.id, username: user.username, character: user.character, roomId: data.roomId, fileName: data.fileName, size: data.size, dataUrl: data.dataUrl, isImage: data.isImage, isHost, id: Date.now() });
@@ -447,7 +520,6 @@ io.on('connection', (socket)=>{
     cb({allowed:true, data:text});
   });
   socket.on('disconnect', ()=>{
-    console.log('disconnect', socket.id);
     for(const roomId in rooms){
       const room = rooms[roomId];
       if(room.users[socket.id]){
@@ -455,9 +527,9 @@ io.on('connection', (socket)=>{
         if(socket.id === room.hostId && Object.keys(room.users).length > 0){
           const sorted = Object.values(room.users).sort((a,b)=>a.joinedAt - b.joinedAt);
           const nextHost = sorted[0]; room.hostId = nextHost.socketId;
-          io.to(roomId).emit('systemMessage', `👑 방장이 ${nextHost.username}님에게 위임되었습니다`);
+          io.to(roomId).emit('systemMessage', `👑 방장이 ${nextHost.username}님에게 위임됨`);
           for(const sid in room.users){
-            io.to(sid).emit('roomInfo', { isHost: sid===room.hostId, mySocketId: sid, hostId: room.hostId, participants: Object.values(room.users) });
+            io.to(sid).emit('roomInfo', { isHost: sid===room.hostId, mySocketId: sid, hostId: room.hostId, participants: Object.values(room.users), bgmState: room.bgmState });
             io.to(sid).emit('participantsUpdate', { participants: Object.values(room.users), hostId: room.hostId });
           }
         } else {
@@ -475,4 +547,4 @@ app.get('/export', (req,res)=>{
   const text = all.map(m=>`[${new Date(m.id).toLocaleString('ko-KR')}] ${m.character} ${m.username}${m.isHost?'👑':''}: ${m.text||m.fileName}`).join('\\n');
   res.type('text/plain').send(text);
 });
-server.listen(PORT, ()=> console.log(`✅ Fixed all bugs on ${PORT}`));
+server.listen(PORT, ()=> console.log(`📸 Photo click fixed + BGM host on ${PORT}`));
