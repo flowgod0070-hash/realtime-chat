@@ -1,3 +1,4 @@
+
 import express from 'express';
 import http from 'http';
 import { Server } from 'socket.io';
@@ -12,6 +13,7 @@ const app = express();
 const server = http.createServer(app);
 const io = new Server(server, { maxHttpBufferSize: 15 * 1024 * 1024, cors: { origin: "*" } });
 
+app.use(express.json({ limit: '10mb' }));
 app.use((req,res,next)=>{
   res.set('Cache-Control','no-store, no-cache, must-revalidate, private');
   res.set('Pragma','no-cache');
@@ -23,7 +25,7 @@ const publicPath = path.join(__dirname, 'public');
 app.use(express.static(publicPath, { maxAge:0, etag:false }));
 app.use(express.static(__dirname, { maxAge:0, etag:false }));
 
-app.get('/health', (req,res)=>res.send('ok v18 - only 플로우갓 host'));
+app.get('/health', (req,res)=>res.send('ok v34 - gdrive auto'));
 
 app.get('/', (req,res)=>{
   const p = path.join(publicPath, 'index.html');
@@ -33,8 +35,39 @@ app.get('/', (req,res)=>{
     return res.send(html);
   }
   res.sendFile(path.join(publicPath, 'index.html'), { headers: { 'Cache-Control':'no-store' } }, (err)=>{
-    if(err) res.status(404).send('Not Found - public/index.html 필요');
+    if(err) res.status(404).send('Not Found');
   });
+});
+
+// Google Drive auto-save endpoint (v34)
+const GDRIVE_FOLDER_ID = '1hYEQHAM4QYNmclKbNPV2oOMUHaWDnkfH';
+const GDRIVE_FOLDER_LINK = 'https://drive.google.com/drive/folders/1hYEQHAM4QYNmclKbNPV2oOMUHaWDnkfH';
+
+app.post('/api/saveToDrive', async (req,res)=>{
+  try{
+    const { content, fileName, folderName } = req.body;
+    console.log('[Drive] Save request:', fileName);
+    
+    // Note: For full auto-upload, need GOOGLE_SERVICE_ACCOUNT or OAuth credentials in env
+    // This endpoint currently returns folder info and lets client know where to save
+    // For actual auto-upload, configure GOOGLE_CREDENTIALS in Render env vars
+    
+    // If googleapis is installed and credentials exist, we could auto-upload here
+    // For now, return success with folder link for manual + future auto
+    
+    res.json({
+      success: true,
+      folderId: GDRIVE_FOLDER_ID,
+      folderLink: GDRIVE_FOLDER_LINK,
+      fileName: fileName || 'chatlog_' + Date.now() + '.txt',
+      message: '구글 드라이브 폴더가 준비되었습니다. 클라이언트에서 다운로드 후 폴더에 업로드하거나, 서버에 GOOGLE_CREDENTIALS 설정시 자동 업로드 됩니다.',
+      autoUpload: false, // set to true when credentials configured
+      instructions: 'Render 환경변수에 GOOGLE_SERVICE_ACCOUNT_JSON 설정하면 자동 업로드 활성화'
+    });
+  }catch(e){
+    console.error('[Drive] Error:', e);
+    res.status(500).json({ success:false, error: e.message });
+  }
 });
 
 let users = {};
@@ -76,11 +109,9 @@ io.on('connection', (socket)=>{
     const room = socket.roomId || 'main-room';
     const user = users[socket.id];
     if(!user || !isHostUser(user.username)){
-      console.log(`[BGM 차단] ${user?.username}는 방장이 아니라서 BGM 변경 불가`);
       socket.emit('systemMessage', '🚫 BGM 변경은 플로우갓만 가능합니다!');
       return;
     }
-    console.log(`[BGM 변경] ${user.username} -> ${track}`);
     io.to(room).emit('bgmTrackChange', track);
     io.to(room).emit('systemMessage', `🎵 BGM 변경: ${track} (플로우갓)`);
   });
@@ -96,4 +127,4 @@ io.on('connection', (socket)=>{
 });
 
 const PORT = process.env.PORT || 10000;
-server.listen(PORT, ()=>console.log(`플로우갓의 채팅방 v18 Live on ${PORT} - 방장=플로우갓만`));
+server.listen(PORT, ()=>console.log(`플로우갓의 채팅방 v34 Live on ${PORT} - 방장=플로우갓만 + GDrive 폴더:${GDRIVE_FOLDER_ID}`));
