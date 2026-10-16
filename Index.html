@@ -59,9 +59,7 @@ let isComposing = false;
 let isHost = false;
 let currentTrack = localStorage.getItem('lastBgmTrack') || 'bgm1.mp3';
 let myVolume = parseFloat(localStorage.getItem('myBgmVolume') || '0.5');
-
 const bgmList = ['bgm1.mp3','bgm2.mp3','bgm3.mp3','bgm4.mp3','bgm5.mp3'];
-
 function renderLogin(){
  appEl.innerHTML=`
  <div class="login">
@@ -107,7 +105,6 @@ function enter(){
  initBgm();
 }
 let enterSoundEnabled = localStorage.getItem('enterSoundEnabled') !== '0';
-
 function playEnterSound(){
  if(!enterSoundEnabled) return;
  try{
@@ -141,7 +138,6 @@ function playBeepFallback(){
    });
  }catch(e){}
 }
-
 function initSocket(){
  socket=io();
  socket.emit('joinRoom', myInfo);
