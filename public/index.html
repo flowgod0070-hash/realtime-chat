@@ -3,8 +3,8 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
-<link rel="manifest" href="/manifest.json?v=24">
-<link rel="apple-touch-icon" href="/my-icon-180.png?v=24">
+<link rel="manifest" href="/manifest.json?v=25">
+<link rel="apple-touch-icon" href="/my-icon-180.png?v=25">
 <title>플로우갓의 채팅방</title>
 <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
 <meta name="theme-color" content="#ffffff">
@@ -19,7 +19,11 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Apple SD Gothic Neo','Noto Sa
 .header b{font-size:16px}
 .bgmBar{display:flex;align-items:center;gap:6px;background:#f5f5f7;padding:8px 10px;border-radius:12px;font-size:12px;flex-wrap:wrap}
 .bgmBar select{padding:5px 8px;border-radius:8px;border:1px solid #ddd;font-size:12px;background:#fff}
-.bgmBar input[type=range]{flex:1;min-width:50px;max-width:80px}
+.bgmBar input[type=range]{flex:1;min-width:70px;max-width:110px;height:24px;-webkit-appearance:none;appearance:none;background:transparent;touch-action:none}
+.bgmBar input[type=range]::-webkit-slider-runnable-track{height:6px;background:#ddd;border-radius:3px}
+.bgmBar input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:22px;height:22px;border-radius:50%;background:#000;margin-top:-8px;cursor:pointer;box-shadow:0 1px 4px rgba(0,0,0,.2)}
+.bgmBar input[type=range]::-moz-range-track{height:6px;background:#ddd;border-radius:3px}
+.bgmBar input[type=range]::-moz-range-thumb{width:22px;height:22px;border-radius:50%;background:#000;border:none;cursor:pointer}
 .bgmBar button{padding:5px 8px;border:none;border-radius:8px;background:#fff;border:1px solid #ddd;cursor:pointer;font-size:12px}
 /* 펼침 방식 + 작은 사이즈 + 하단 슬라이더 */
 .emojiBarWrap{background:#fafafa;border-bottom:1px solid #eee;position:relative}
@@ -97,6 +101,7 @@ let isComposing=false,isHost=false;
 let currentTrack=localStorage.getItem('lastBgmTrack')||'bgm1.mp3';
 let myVolume=parseFloat(localStorage.getItem('myBgmVolume')||'0.5');
 let enterSoundEnabled=localStorage.getItem('enterSoundEnabled')!=='0';
+let audioCtx=null, gainNode=null, mediaSource=null;
 const bgmList=['bgm1.mp3','bgm2.mp3','bgm3.mp3','bgm4.mp3','bgm5.mp3'];
 const emoticonCategories = {
   '감사': [
@@ -153,7 +158,7 @@ const quickEmojis = ['🙏 감사해요','🙌 할렐루야','😊 기뻐요','�
 function renderLogin(){
  appEl.innerHTML=`<div class="login" style="gap:16px">
   <div style="text-align:center;margin-bottom:4px">
-    <img src="/my-icon-512.png?v=24" onerror="this.src='/my-icon-192.png?v=24'; this.onerror=null" alt="플로우갓 캐릭터" style="width:132px;height:132px;border-radius:50%;object-fit:contain;background:#FEE500;padding:10px;box-shadow:0 8px 24px rgba(0,0,0,.15);display:inline-block">
+    <img src="/my-icon-512.png?v=25" onerror="this.src='/my-icon-192.png?v=25'; this.onerror=null" alt="플로우갓 캐릭터" style="width:132px;height:132px;border-radius:50%;object-fit:contain;background:#FEE500;padding:10px;box-shadow:0 8px 24px rgba(0,0,0,.15);display:inline-block">
   </div>
   <h1 style="text-align:center;font-size:22px">🐣 플로우갓의 채팅방 입장</h1>
   <input id="nameIn" placeholder="내 이름 (방장 포함하면 방장)" />
@@ -206,10 +211,10 @@ function initSocket(){
  socket.on('systemMessage',txt=>{addSystem(txt); if((txt.includes('들어왔')||txt.includes('입장')||txt.includes('입장'))&&!txt.includes(myInfo.username)) playEnterSound();});
  socket.on('userJoined',data=>{if(data.username!==myInfo.username){addSystem(`🔔 ${data.character||'🐣'} ${data.username}님이 들어왔습니다.`); playEnterSound();}});
  socket.on('userLeft',data=>addSystem(`👋 ${data.username}님이 나갔습니다.`));
- socket.on('bgmTrackChange',track=>{if(bgmList.includes(track)){currentTrack=track;const p=document.getElementById('bgmPlayer');const was=!p.paused;p.src='/'+track+'?v=24';localStorage.setItem('lastBgmTrack',track);updateBgmSelect();if(was)p.play().catch(()=>{});addSystem(`🎵 BGM 변경: ${track}`);}});
+ socket.on('bgmTrackChange',track=>{if(bgmList.includes(track)){currentTrack=track;const p=document.getElementById('bgmPlayer');const was=!p.paused;p.src='/'+track+'?v=25';localStorage.setItem('lastBgmTrack',track);updateBgmSelect();if(was)p.play().catch(()=>{});addSystem(`🎵 BGM 변경: ${track}`);}});
 }
 function renderChat(){
- appEl.innerHTML=`<div class="header"><div class="headerTop"><b>${myInfo.character} ${myInfo.username} · ${roomId} ${isHost?'👑방장':''}</b><span style="font-size:11px;color:#888">플로우갓의 채팅방 v24</span></div><div id="bgmBarWrap"></div></div>
+ appEl.innerHTML=`<div class="header"><div class="headerTop"><b>${myInfo.character} ${myInfo.username} · ${roomId} ${isHost?'👑방장':''}</b><span style="font-size:11px;color:#888">플로우갓의 채팅방 v25</span></div><div id="bgmBarWrap"></div></div>
  <div class="messages" id="msgs"></div>
  <div class="emojiBarWrap" id="emojiBarWrap">
    <div class="emoPanel show" id="emoPanel" style="display:block"></div>
@@ -302,26 +307,48 @@ function closeSliderAfterSend(){
 function switchEmoCat(cat){ toggleSecondTier(cat); }
 function toggleEmoPanel(){ toggleSecondTier('감사'); }
 function closeAfterSend(){}
+function ensureAudioContext(){
+  try{
+    if(!audioCtx){
+      audioCtx = new (window.AudioContext||window.webkitAudioContext)();
+      gainNode = audioCtx.createGain();
+      gainNode.gain.value = myVolume;
+      gainNode.connect(audioCtx.destination);
+    }
+    if(audioCtx.state==='suspended') audioCtx.resume();
+    var p=document.getElementById('bgmPlayer');
+    if(p && !mediaSource){
+      mediaSource = audioCtx.createMediaElementSource(p);
+      mediaSource.connect(gainNode);
+    }
+  }catch(e){ console.log('AudioContext error', e); }
+}
 function toggleEnterSound(){enterSoundEnabled=!enterSoundEnabled; localStorage.setItem('enterSoundEnabled',enterSoundEnabled?'1':'0'); const b=document.getElementById('enterBtn'); if(b) b.textContent=enterSoundEnabled?'🔔':'🔕'; if(enterSoundEnabled) playEnterSound();}
 function updateBgmSelect(){const s=document.getElementById('bgmSelect'); if(s) s.value=currentTrack;}
 function initBgm(){
   const p=document.getElementById('bgmPlayer');
   if(!p){console.log('bgmPlayer 없음!'); return;}
-  p.src='/'+currentTrack+'?v=24';
-  p.volume=myVolume;
+  p.src='/'+currentTrack+'?v=25';
+  p.volume=1;
   p.preload='auto';
+  p.setAttribute('playsinline','');
+  p.setAttribute('webkit-playsinline','');
   console.log('BGM init',currentTrack,myVolume);
+  // Web Audio for iPhone volume control
+  ensureAudioContext();
+  if(gainNode) gainNode.gain.value = myVolume;
 }
 function toggleBgm(){
   const p=document.getElementById('bgmPlayer');
   if(!p) return;
+  ensureAudioContext();
   if(p.paused){
-    p.volume=myVolume;
+    if(gainNode) gainNode.gain.value = myVolume;
     p.play().then(()=>{
       const btn=document.getElementById('bgmPlayBtn');
       if(btn) btn.textContent='⏸ 정지';
-      console.log('BGM playing vol',p.volume);
-    }).catch(()=>alert('재생 버튼 다시 눌러주세요! (브라우저가 막음)'));
+      console.log('BGM playing vol',myVolume);
+    }).catch(function(e){ alert('재생 버튼 다시 눌러주세요! (아이폰은 직접 눌러야 재생돼요)'); console.log(e); });
   } else {
     p.pause();
     const btn=document.getElementById('bgmPlayBtn');
@@ -333,29 +360,38 @@ function changeTrack(t){
   currentTrack=t;
   const p=document.getElementById('bgmPlayer');
   const was=p && !p.paused;
-  if(p){ p.src='/'+t+'?v=24'; p.volume=myVolume; if(was) p.play().catch(()=>{}); }
+  if(p){ 
+    p.src='/'+t+'?v=25'; 
+    if(gainNode) gainNode.gain.value = myVolume;
+    p.volume=1;
+    if(was) p.play().catch(function(){}); 
+  }
   localStorage.setItem('lastBgmTrack',t);
   if(socket) socket.emit('bgmTrackChange',t);
-  addSystem(`🎵 BGM 변경: ${t} (방장)`);
+  addSystem('🎵 BGM 변경: '+t+' (방장)');
 }
 function changeMyVolume(v){
   myVolume=parseFloat(v);
-  const p=document.getElementById('bgmPlayer');
-  if(p){
-    p.volume=myVolume;
-    p.muted=false;
-    console.log('volume changed to',myVolume,'player vol',p.volume);
-  }
   localStorage.setItem('myBgmVolume',myVolume);
+  // iPhone: Web Audio API GainNode로 볼륨 조절 (audio.volume은 아이폰에서 안 먹음)
+  ensureAudioContext();
+  if(gainNode){
+    try{ gainNode.gain.value = myVolume; }catch(e){}
+  }
+  // PC 백업: 일반 audio.volume도 설정
+  const p=document.getElementById('bgmPlayer');
+  if(p){ try{ p.volume=1; p.muted=false; }catch(e){} }
+  console.log('volume changed to',myVolume,'gain',gainNode?gainNode.gain.value:'no gain');
   const label=document.getElementById('volLabel');
   if(label) label.textContent=Math.round(myVolume*100)+'%';
+  const slider=document.getElementById('volSlider');
+  if(slider && slider.value != v) slider.value = v;
 }
 function toggleBgmMute(){
-  const p=document.getElementById('bgmPlayer');
   const s=document.getElementById('volSlider');
-  if(!p||!s) return;
-  if(p.volume>0.01){
-    s.dataset.prev=p.volume;
+  if(!s) return;
+  if(myVolume>0.01){
+    s.dataset.prev=myVolume;
     changeMyVolume(0);
     s.value=0;
   } else {
