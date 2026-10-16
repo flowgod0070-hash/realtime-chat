@@ -3,8 +3,8 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
-<link rel="manifest" href="/manifest.json?v=17">
-<link rel="apple-touch-icon" href="/my-icon-180.png?v=17">
+<link rel="manifest" href="/manifest.json?v=18">
+<link rel="apple-touch-icon" href="/my-icon-180.png?v=18">
 <title>플로우갓의 채팅방</title>
 <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
 <meta name="theme-color" content="#ffffff">
@@ -144,7 +144,7 @@ const quickEmojis = ['🙏 감사해요','🙌 할렐루야','😊 기뻐요','�
 function renderLogin(){
  appEl.innerHTML=`<div class="login" style="gap:16px">
   <div style="text-align:center;margin-bottom:4px">
-    <img src="/my-icon-512.png?v=17" onerror="this.src='/my-icon-192.png?v=17'; this.onerror=null" alt="플로우갓 캐릭터" style="width:132px;height:132px;border-radius:50%;object-fit:contain;background:#FEE500;padding:10px;box-shadow:0 8px 24px rgba(0,0,0,.15);display:inline-block">
+    <img src="/my-icon-512.png?v=18" onerror="this.src='/my-icon-192.png?v=18'; this.onerror=null" alt="플로우갓 캐릭터" style="width:132px;height:132px;border-radius:50%;object-fit:contain;background:#FEE500;padding:10px;box-shadow:0 8px 24px rgba(0,0,0,.15);display:inline-block">
   </div>
   <h1 style="text-align:center;font-size:22px">🐣 플로우갓의 채팅방 입장</h1>
   <input id="nameIn" placeholder="내 이름 (방장 포함하면 방장)" />
@@ -175,8 +175,9 @@ function enter(){
  const name=document.getElementById('nameIn').value.trim(); if(!name) return alert('이름 입력');
  const room=document.getElementById('roomIn').value.trim()||'main-room'; roomId=room;
  myInfo={username:name,character:window._sel(),roomId};
- isHost=name.includes('방장')||name.includes('플로우갓')||name.includes('관리자')||name.toLowerCase().includes('cho')||name.toLowerCase().includes('flowgod');
- if(isHost) localStorage.setItem('isHost-'+roomId,'1'); else if(localStorage.getItem('isHost-'+roomId)) isHost=true;
+ isHost = name.trim() === '플로우갓'; // 플로우갓만 방장
+ // 방장 정보는 localStorage에 저장 안 함 - 플로우갓만 방장
+  localStorage.removeItem('isHost-'+roomId);
  initSocket(); renderChat(); initBgm();
 }
 function playEnterSound(){
@@ -196,11 +197,11 @@ function initSocket(){
  socket.on('systemMessage',txt=>{addSystem(txt); if((txt.includes('들어왔')||txt.includes('입장')||txt.includes('입장'))&&!txt.includes(myInfo.username)) playEnterSound();});
  socket.on('userJoined',data=>{if(data.username!==myInfo.username){addSystem(`🔔 ${data.character||'🐣'} ${data.username}님이 들어왔습니다.`); playEnterSound();}});
  socket.on('userLeft',data=>addSystem(`👋 ${data.username}님이 나갔습니다.`));
- socket.on('bgmTrackChange',track=>{if(bgmList.includes(track)){currentTrack=track;const p=document.getElementById('bgmPlayer');const was=!p.paused;p.src='/'+track+'?v=17';localStorage.setItem('lastBgmTrack',track);updateBgmSelect();if(was)p.play().catch(()=>{});addSystem(`🎵 BGM 변경: ${track}`);}});
+ socket.on('bgmTrackChange',track=>{if(bgmList.includes(track)){currentTrack=track;const p=document.getElementById('bgmPlayer');const was=!p.paused;p.src='/'+track+'?v=18';localStorage.setItem('lastBgmTrack',track);updateBgmSelect();if(was)p.play().catch(()=>{});addSystem(`🎵 BGM 변경: ${track}`);}});
 }
 function renderChat(){
  const quickHtml = quickEmojis.map(e=>`<button class="emoBtn" onclick="sendReaction('${e}')">${e}</button>`).join('');
- appEl.innerHTML=`<div class="header"><div class="headerTop"><b>${myInfo.character} ${myInfo.username} · ${roomId} ${isHost?'👑방장':''}</b><span style="font-size:11px;color:#888">플로우갓의 채팅방 v17</span></div><div id="bgmBarWrap"></div></div>
+ appEl.innerHTML=`<div class="header"><div class="headerTop"><b>${myInfo.character} ${myInfo.username} · ${roomId} ${isHost?'👑방장':''}</b><span style="font-size:11px;color:#888">플로우갓의 채팅방 v18</span></div><div id="bgmBarWrap"></div></div>
  <div class="emojiBarWrap">
    <div class="quickBar"><span style="font-size:11px;color:#888;font-weight:700;white-space:nowrap">빠른반응</span>${quickHtml}<button class="emoToggle" onclick="toggleEmoPanel()">😊 전체보기</button></div>
    <div class="emoPanel" id="emoPanel"></div>
@@ -269,7 +270,7 @@ function updateBgmSelect(){const s=document.getElementById('bgmSelect'); if(s) s
 function initBgm(){
   const p=document.getElementById('bgmPlayer');
   if(!p){console.log('bgmPlayer 없음!'); return;}
-  p.src='/'+currentTrack+'?v=17';
+  p.src='/'+currentTrack+'?v=18';
   p.volume=myVolume;
   p.preload='auto';
   console.log('BGM init',currentTrack,myVolume);
@@ -291,11 +292,11 @@ function toggleBgm(){
   }
 }
 function changeTrack(t){
-  if(!isHost){alert('BGM 변경은 방장만! 이름에 방장 포함'); return;}
+  if(!isHost){alert('BGM 변경은 플로우갓만 가능!'); return;}
   currentTrack=t;
   const p=document.getElementById('bgmPlayer');
   const was=p && !p.paused;
-  if(p){ p.src='/'+t+'?v=17'; p.volume=myVolume; if(was) p.play().catch(()=>{}); }
+  if(p){ p.src='/'+t+'?v=18'; p.volume=myVolume; if(was) p.play().catch(()=>{}); }
   localStorage.setItem('lastBgmTrack',t);
   if(socket) socket.emit('bgmTrackChange',t);
   addSystem(`🎵 BGM 변경: ${t} (방장)`);
