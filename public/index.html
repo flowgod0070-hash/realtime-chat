@@ -3,8 +3,8 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
-<link rel="manifest" href="/manifest.json?v=33">
-<link rel="apple-touch-icon" href="/my-icon-180.png?v=33">
+<link rel="manifest" href="/manifest.json?v=35">
+<link rel="apple-touch-icon" href="/my-icon-180.png?v=35">
 <title>플로우갓의 채팅방</title>
 <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
 <meta name="theme-color" content="#ffffff">
@@ -108,6 +108,8 @@ let currentTrack=localStorage.getItem('lastBgmTrack')||'bgm1.mp3';
 let myVolume=parseFloat(localStorage.getItem('myBgmVolume')||'0.5');
 let enterSoundEnabled=localStorage.getItem('enterSoundEnabled')!=='0';
 let audioCtx=null, gainNode=null, mediaSource=null;
+const ADMIN_NAME='플로우갓';
+const ADMIN_PW='0325';
 const bgmList=['bgm1.mp3','bgm2.mp3','bgm3.mp3','bgm4.mp3','bgm5.mp3'];
 const emoticonCategories = {
   '감사': [
@@ -164,10 +166,15 @@ const quickEmojis = ['🙏 감사해요','🙌 할렐루야','😊 기뻐요','�
 function renderLogin(){
  appEl.innerHTML=`<div class="login" style="gap:16px">
   <div style="text-align:center;margin-bottom:4px">
-    <img src="/my-icon-512.png?v=33" onerror="this.src='/my-icon-192.png?v=33'; this.onerror=null" alt="플로우갓 캐릭터" style="width:132px;height:132px;border-radius:50%;object-fit:contain;background:#FEE500;padding:10px;box-shadow:0 8px 24px rgba(0,0,0,.15);display:inline-block">
+    <img src="/my-icon-512.png?v=35" onerror="this.src='/my-icon-192.png?v=35'; this.onerror=null" alt="플로우갓 캐릭터" style="width:132px;height:132px;border-radius:50%;object-fit:contain;background:#FEE500;padding:10px;box-shadow:0 8px 24px rgba(0,0,0,.15);display:inline-block">
   </div>
   <h1 style="text-align:center;font-size:22px">🐣 플로우갓의 채팅방 입장</h1>
-  <input id="nameIn" placeholder="내 이름 (방장 포함하면 방장)" />
+  <input id="nameIn" placeholder="내 이름" oninput="checkAdminInput()" />
+  <div id="adminPwBox" style="display:none;background:#FFF3CD;border:1px solid #FFD60A;border-radius:12px;padding:10px">
+    <div style="font-size:12px;font-weight:700;color:#856404;margin-bottom:6px">👑 방장 인증 - 비밀번호 0325</div>
+    <input id="adminPwIn" type="password" placeholder="비밀번호 0325" style="width:100%;padding:11px;border:1px solid #ddd;border-radius:8px" />
+    <div style="font-size:10px;color:#856404;margin-top:4px">플로우갓은 관리자 전용 이름입니다</div>
+  </div>
   <div>
     <p style="font-size:13px;margin-bottom:8px;font-weight:600">내 캐릭터</p>
     <div class="chars" id="chars"></div>
@@ -191,12 +198,31 @@ function renderLogin(){
  });
  window._sel=()=>sel;
 }
+function checkAdminInput(){
+  var nameEl=document.getElementById('nameIn');
+  var box=document.getElementById('adminPwBox');
+  if(!nameEl||!box) return;
+  if(nameEl.value.trim()===ADMIN_NAME){
+    box.style.display='block';
+  } else {
+    box.style.display='none';
+  }
+}
 function enter(){
  const name=document.getElementById('nameIn').value.trim(); if(!name) return alert('이름 입력');
+ // 플로우갓이면 비밀번호 검증
+ if(name===ADMIN_NAME){
+   var pwEl=document.getElementById('adminPwIn');
+   var pw=pwEl?pwEl.value:'';
+   if(pw!==ADMIN_PW){
+     alert('🚫 방장 비밀번호가 틀렸습니다!\n플로우갓 이름은 관리자만 사용할 수 있습니다.\n비밀번호: 0325');
+     if(pwEl){ pwEl.value=''; pwEl.focus(); }
+     return;
+   }
+ }
  const room=document.getElementById('roomIn').value.trim()||'main-room'; roomId=room;
- myInfo={username:name,character:window._sel(),roomId};
+ myInfo={username:name,character:window._sel(),roomId,adminPassword: (name===ADMIN_NAME?ADMIN_PW:'')};
  isHost = name.trim() === '플로우갓'; // 플로우갓만 방장
- // 방장 정보는 localStorage에 저장 안 함 - 플로우갓만 방장
   localStorage.removeItem('isHost-'+roomId);
  initSocket(); renderChat(); initBgm();
 }
@@ -217,10 +243,11 @@ function initSocket(){
  socket.on('systemMessage',txt=>{addSystem(txt); if((txt.includes('들어왔')||txt.includes('입장')||txt.includes('입장'))&&!txt.includes(myInfo.username)) playEnterSound();});
  socket.on('userJoined',data=>{if(data.username!==myInfo.username){addSystem(`🔔 ${data.character||'🐣'} ${data.username}님이 들어왔습니다.`); playEnterSound();}});
  socket.on('userLeft',data=>addSystem(`👋 ${data.username}님이 나갔습니다.`));
- socket.on('bgmTrackChange',track=>{if(bgmList.includes(track)){currentTrack=track;const p=document.getElementById('bgmPlayer');const was=!p.paused;p.src='/'+track+'?v=33';localStorage.setItem('lastBgmTrack',track);updateBgmSelect();if(was)p.play().catch(()=>{});addSystem(`🎵 BGM 변경: ${track}`);}});
+ socket.on('bgmTrackChange',track=>{if(bgmList.includes(track)){currentTrack=track;const p=document.getElementById('bgmPlayer');const was=!p.paused;p.src='/'+track+'?v=35';localStorage.setItem('lastBgmTrack',track);updateBgmSelect();if(was)p.play().catch(()=>{});addSystem(`🎵 BGM 변경: ${track}`);}});
 }
 function renderChat(){
- appEl.innerHTML=`<div class="header"><div class="headerTop"><b>${myInfo.character} ${myInfo.username} · ${roomId} ${isHost?'👑방장':''}</b><span style="font-size:11px;color:#888">플로우갓의 채팅방 v33</span></div><div id="bgmBarWrap"></div></div>
+ var isAdmin = myInfo.username===ADMIN_NAME;
+ appEl.innerHTML=`<div class="header"><div class="headerTop"><b>${myInfo.character} ${myInfo.username} · ${roomId} ${isHost?'👑방장':''}</b><span style="display:flex;align-items:center;gap:8px"><span style="font-size:11px;color:#888">플로우갓의 채팅방 v35</span>${isAdmin?'<button onclick="saveChatLog()" style="padding:4px 10px;border-radius:16px;border:1px solid #FFD60A;background:#FFF3CD;font-size:11px;font-weight:700;cursor:pointer">📄 저장</button>':''}</span></div><div id="bgmBarWrap"></div></div>
  <div class="messages" id="msgs" onclick="handleMessagesClick(event)"></div>
  <div class="emojiBarWrap" id="emojiBarWrap">
    <div class="emoPanel show" id="emoPanel" style="display:block"></div>
@@ -300,7 +327,7 @@ function saveChatLog(){
     
     log += '\n========================================\n';
     log += '총 메시지: ' + allMsgs.length + '개\n';
-    log += '생성: 플로우갓의 채팅방 v33\n';
+    log += '생성: 플로우갓의 채팅방 v35\n';
     
     // 1. 로컬 다운로드
     var blob = new Blob([log], {type: 'text/plain;charset=utf-8'});
@@ -414,7 +441,9 @@ function renderEmoPanel(){
     const items=emoticonCategories[openedCat].map(it=>`<div class="emoSlideItem" onclick="handleEmojiCardClick('${it.emoji}','${it.full}')"><span class="e">${it.emoji}</span><span class="t">${it.text}</span></div>`).join('');
     sliderHtml=`<div class="emojiBottomSheet ${sliderOpen?'show':''}" id="emojiSliderSheet" onclick="hideTopMenu()"><div class="emojiSlider" onclick="event.stopPropagation()">${items}</div></div><div class="emoOverlay ${sliderOpen?'show':''}" id="emoOverlay" onclick="closeEmojiSlider();"></div>`;
   }
-  const hideHint = `<span class="expandHint" onclick="event.stopPropagation(); hideEmojiBar()" style="cursor:pointer;background:#f2f2f2;padding:4px 8px;border-radius:12px;font-size:11px;margin-right:6px">← 숨기기</span><span class="expandHint" onclick="event.stopPropagation(); saveChatLog()" style="cursor:pointer;background:#FEE500;padding:4px 8px;border-radius:12px;font-size:11px;margin-right:6px">📄 로그저장</span>`;
+  var isAdmin2 = myInfo.username===ADMIN_NAME;
+  var isAdmin2 = myInfo.username===ADMIN_NAME;
+  const hideHint = `<span class="expandHint" onclick="event.stopPropagation(); hideEmojiBar()" style="cursor:pointer;background:#f2f2f2;padding:4px 8px;border-radius:12px;font-size:11px;margin-right:6px">← 숨기기</span>`+ (isAdmin2?`<span class="expandHint" onclick="event.stopPropagation(); saveChatLog()" style="cursor:pointer;background:#FFF3CD;padding:4px 8px;border-radius:12px;font-size:11px;margin-right:6px;border:1px solid #FFD60A;font-weight:700">📄 저장</span>`:``);
   panel.innerHTML=`<div class="emojiCollapsed" id="emojiCollapsedBar">${hideHint}${collapsedTabs}</div>${sliderHtml}`;
 }
 function getCatIcon(cat){
@@ -504,7 +533,7 @@ function updateBgmSelect(){const s=document.getElementById('bgmSelect'); if(s) s
 function initBgm(){
   const p=document.getElementById('bgmPlayer');
   if(!p){console.log('bgmPlayer 없음!'); return;}
-  p.src='/'+currentTrack+'?v=33';
+  p.src='/'+currentTrack+'?v=35';
   p.volume=1;
   p.preload='auto';
   p.setAttribute('playsinline','');
@@ -537,7 +566,7 @@ function changeTrack(t){
   const p=document.getElementById('bgmPlayer');
   const was=p && !p.paused;
   if(p){ 
-    p.src='/'+t+'?v=33'; 
+    p.src='/'+t+'?v=35'; 
     if(gainNode) gainNode.gain.value = myVolume;
     p.volume=1;
     if(was) p.play().catch(function(){}); 
