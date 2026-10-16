@@ -1,7 +1,6 @@
 import express from 'express';
 import http from 'http';
 import { Server } from 'socket.io';
-
 const app = express();
 const server = http.createServer(app);
 const io = new Server(server, { cors: { origin: "*" }, maxHttpBufferSize: 1e7 });
@@ -12,7 +11,7 @@ const HTML = `<!DOCTYPE html>
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
-<title>실시간 채팅 - BGM 5곡 완전 수정</title>
+<title>실시간 채팅</title>
 <style>
 :root{--bg:#fff;--header:rgba(255,255,255,.92);--msgBg:#ABC1D1;--my:#FEE500;--other:#fff;--text:#111;--border:#eee;--inputBg:#f2f2f2;--sheet:#fff}
 [data-theme="dark"]{--bg:#121212;--header:rgba(18,18,18,.92);--msgBg:#0f1419;--my:#FEE500;--other:#2a2f36;--text:#e8e8e8;--border:#2a2a2a;--inputBg:#1e1e1e;--sheet:#1e1e1e}
@@ -30,7 +29,8 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Apple SD Gothic Neo','Noto Sa
 .btnTop.save.show{display:block}
 [data-theme="dark"] .btnTop.save{background:#fff;color:#000}
 .iconCircle{width:30px;height:30px;border-radius:50%;border:1px solid var(--border);background:var(--inputBg);display:grid;place-items:center;cursor:pointer;font-size:14px}
-.login{flex:1;display:flex;flex-direction:column;justify-content:center;padding:24px;gap:12px;background:var(--bg);overflow-y:auto}
+.login{flex:1;display:flex;flex-direction:column;justify-content:center;padding:28px;gap:14px;background:var(--bg)}
+.login h1{font-size:22px}
 .login input{padding:14px;border:1px solid var(--border);border-radius:12px;font-size:16px;background:var(--inputBg);color:var(--text)}
 .login button{padding:14px;background:#FEE500;border:none;border-radius:12px;font-weight:700;font-size:16px;cursor:pointer;color:#000}
 .chars{display:flex;gap:8px;flex-wrap:wrap}
@@ -74,8 +74,8 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Apple SD Gothic Neo','Noto Sa
 .bgmBar .track{flex:1;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;color:#888;cursor:pointer}
 .bgmBtn{width:28px;height:28px;border-radius:50%;border:1px solid var(--border);background:var(--inputBg);display:grid;place-items:center;cursor:pointer;font-size:12px}
 .bgmBtn.active{background:#000;color:#fff;border-color:#000}
-.bgmBtn:disabled{opacity:.4}
-input[type=range]{width:60px;height:4px;accent-color:#000}
+.bgmBtn:disabled{opacity:.4;cursor:not-allowed}
+input[type=range]{width:80px;height:6px;accent-color:#000;cursor:pointer}
 .bgmOption{display:flex;justify-content:space-between;align-items:center;padding:12px;border:1px solid var(--border);border-radius:12px;background:var(--bg);cursor:pointer;transition:.15s}
 .bgmOption.active{border-color:#000;background:#000;color:#fff}
 .bgmOption.active span{color:#ccc!important}
@@ -86,7 +86,6 @@ input[type=range]{width:60px;height:4px;accent-color:#000}
 .photoModal .closeBtn{position:absolute;top:16px;right:16px;width:36px;height:36px;border-radius:50%;background:rgba(255,255,255,.2);border:none;color:#fff;font-size:18px;cursor:pointer;display:grid;place-items:center}
 .photoModal .actionBar{display:flex;gap:8px;margin-top:16px}
 .photoModal .actionBtn{padding:8px 14px;border-radius:20px;border:1px solid rgba(255,255,255,.3);background:rgba(255,255,255,.15);color:#fff;font-size:12px;cursor:pointer}
-.testBtn{font-size:10px;padding:4px 8px;border-radius:10px;border:1px solid var(--border);background:var(--inputBg);cursor:pointer}
 </style>
 </head>
 <body>
@@ -98,13 +97,12 @@ let socket, myInfo, roomId='main-room', isHost=false;
 let theme = localStorage.getItem('chatTheme') || (window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light');
 document.documentElement.setAttribute('data-theme', theme);
 
-// 5곡 - Web Audio API로 직접 생성 (외부 링크 없음 - 100% 작동)
 const BGM_LIST = [
-  {id:'lofi1', name:'🌙 조용한 로파이 1', desc:'공부용 · 가장 조용함', type:'lofi1'},
-  {id:'lofi2', name:'☕ 카페 로파이', desc:'보사노바 기타', type:'lofi2'},
-  {id:'rain', name:'🌧️ 빗소리 피아노', desc:'비오는 날 감성', type:'rain'},
-  {id:'night', name:'🌃 새벽 재즈', desc:'졸릴 때 듣기 좋음', type:'night'},
-  {id:'forest', name:'🍃 숲속 바람', desc:'명상 · 힐링', type:'forest'}
+  {id:'lofi1', name:'🌙 조용한 로파이 1', desc:'공부용'},
+  {id:'lofi2', name:'☕ 카페 로파이', desc:'보사노바'},
+  {id:'rain', name:'🌧️ 빗소리 피아노', desc:'비오는 날'},
+  {id:'night', name:'🌃 새벽 재즈', desc:'졸릴 때'},
+  {id:'forest', name:'🍃 숲속 바람', desc:'힐링'}
 ];
 
 let currentBGM = 0;
@@ -113,7 +111,7 @@ let masterGain = null;
 let oscillators = [];
 let isPlaying = false;
 let bgmVol = 0.15;
-let noiseNode = null;
+let volumeDebounceTimer = null;
 
 function initAudio(){
   if(audioContext) return audioContext;
@@ -122,268 +120,114 @@ function initAudio(){
     masterGain = audioContext.createGain();
     masterGain.gain.value = bgmVol;
     masterGain.connect(audioContext.destination);
-    console.log('AudioContext created');
-  }catch(e){
-    console.log('AudioContext fail', e);
-  }
+  }catch(e){}
   return audioContext;
 }
-
-function stopAll(){
-  oscillators.forEach(o=>{
-    try{ o.osc.stop(); }catch(e){}
-    try{ o.gain.gain.cancelScheduledValues(0); }catch(e){}
-  });
-  oscillators = [];
-  if(noiseNode){
-    try{ noiseNode.stop(); }catch(e){}
-    noiseNode = null;
-  }
-}
-
-function playTone(freq, vol, type='sine', detune=0, duration=0){
+function stopAll(){ oscillators.forEach(o=>{ try{ o.osc.stop(); }catch(e){} }); oscillators = []; }
+function playTone(freq, vol, type='sine', detune=0){
   if(!audioContext) return null;
   const osc = audioContext.createOscillator();
   const gain = audioContext.createGain();
   const filter = audioContext.createBiquadFilter();
-  
-  osc.type = type;
-  osc.frequency.value = freq;
-  osc.detune.value = detune;
-  
-  filter.type = 'lowpass';
-  filter.frequency.value = 800;
-  
+  osc.type = type; osc.frequency.value = freq; osc.detune.value = detune;
+  filter.type = 'lowpass'; filter.frequency.value = 800;
   gain.gain.value = 0;
-  gain.gain.linearRampToValueAtTime(vol * bgmVol, audioContext.currentTime + 1);
-  
-  osc.connect(filter);
-  filter.connect(gain);
-  gain.connect(masterGain);
-  
+  gain.gain.linearRampToValueAtTime(vol * bgmVol, audioContext.currentTime + 0.5);
+  osc.connect(filter); filter.connect(gain); gain.connect(masterGain);
   osc.start();
-  
-  oscillators.push({osc, gain, filter});
-  
-  if(duration > 0){
-    setTimeout(()=>{
-      gain.gain.linearRampToValueAtTime(0, audioContext.currentTime + 1);
-      setTimeout(()=>{ try{ osc.stop(); }catch(e){} }, 1100);
-    }, duration*1000);
-  }
-  
+  oscillators.push({osc, gain});
   return {osc, gain};
 }
-
 function playWhiteNoise(vol){
   if(!audioContext) return;
   const bufferSize = audioContext.sampleRate * 2;
   const buffer = audioContext.createBuffer(1, bufferSize, audioContext.sampleRate);
   const output = buffer.getChannelData(0);
   for(let i=0;i<bufferSize;i++){ output[i] = (Math.random()*2-1) * 0.5; }
-  
   const source = audioContext.createBufferSource();
-  source.buffer = buffer;
-  source.loop = true;
-  
-  const filter = audioContext.createBiquadFilter();
-  filter.type = 'lowpass';
-  filter.frequency.value = 400;
-  
-  const gain = audioContext.createGain();
-  gain.gain.value = vol * bgmVol * 0.3;
-  
-  source.connect(filter);
-  filter.connect(gain);
-  gain.connect(masterGain);
+  source.buffer = buffer; source.loop = true;
+  const filter = audioContext.createBiquadFilter(); filter.type = 'lowpass'; filter.frequency.value = 400;
+  const gain = audioContext.createGain(); gain.gain.value = vol * bgmVol * 0.3;
+  source.connect(filter); filter.connect(gain); gain.connect(masterGain);
   source.start();
-  
-  noiseNode = source;
   oscillators.push({osc: source, gain: gain});
 }
-
 function startBGM(idx){
   stopAll();
   if(!audioContext) initAudio();
   if(audioContext.state === 'suspended') audioContext.resume();
-  
   currentBGM = idx;
-  console.log('Starting BGM', idx, BGM_LIST[idx].name);
-  
-  // 5가지 다른 스타일
   switch(idx){
-    case 0: // 조용한 로파이 1 - 낮은 코드 반복
-      playTone(110, 0.15, 'sine', 0);
-      playTone(130.81, 0.12, 'triangle', 2);
-      playTone(164.81, 0.08, 'sine', -3);
-      playWhiteNoise(0.02);
-      // 4초마다 코드 체인지
-      setInterval(()=>{
-        if(currentBGM===0 && isPlaying){
-          stopAll();
-          playTone(98, 0.15, 'sine'); playTone(123.47, 0.12, 'triangle'); playTone(146.83, 0.08, 'sine');
-          setTimeout(()=>{ if(currentBGM===0 && isPlaying){ stopAll(); playTone(110, 0.15, 'sine'); playTone(130.81, 0.12, 'triangle'); playTone(164.81, 0.08, 'sine'); } }, 4000);
-        }
-      }, 8000);
-      break;
-    case 1: // 카페 로파이 - 보사노바 느낌 높은 음
-      playTone(220, 0.12, 'sine');
-      playTone(277.18, 0.09, 'triangle', 5);
-      playTone(329.63, 0.06, 'sine', -2);
-      playWhiteNoise(0.015);
-      break;
-    case 2: // 빗소리 피아노 - 피아노 느낌 + 빗소리
-      playWhiteNoise(0.06); // 빗소리 크게
-      playTone(261.63, 0.1, 'triangle'); // C4
-      setTimeout(()=>{ playTone(329.63, 0.08, 'sine'); }, 800);
-      setTimeout(()=>{ playTone(392.00, 0.06, 'triangle'); }, 1600);
-      // 3초마다 피아노 패턴 반복
-      setInterval(()=>{
-        if(currentBGM===2 && isPlaying){
-          playTone(261.63, 0.1, 'triangle', 0, 1);
-          setTimeout(()=> playTone(329.63, 0.08, 'sine', 0, 1), 600);
-          setTimeout(()=> playTone(392.00, 0.06, 'triangle', 0, 1), 1200);
-        }
-      }, 3000);
-      break;
-    case 3: // 새벽 재즈 - 재즈 코드
-      playTone(146.83, 0.13, 'sine');
-      playTone(185.00, 0.10, 'triangle', 3);
-      playTone(220.00, 0.07, 'sine', -4);
-      playTone(293.66, 0.04, 'triangle', 7);
-      break;
-    case 4: // 숲속 바람 - 매우 낮은 드론 + 바람
-      playWhiteNoise(0.08);
-      playTone(55, 0.18, 'sine');
-      playTone(82.41, 0.12, 'triangle');
-      playTone(110, 0.06, 'sine');
-      break;
+    case 0: playTone(110, 0.15, 'sine'); playTone(130.81, 0.12, 'triangle', 2); playTone(164.81, 0.08, 'sine', -3); playWhiteNoise(0.02); break;
+    case 1: playTone(220, 0.12, 'sine'); playTone(277.18, 0.09, 'triangle', 5); playTone(329.63, 0.06, 'sine', -2); playWhiteNoise(0.015); break;
+    case 2: playWhiteNoise(0.06); playTone(261.63, 0.1, 'triangle'); setTimeout(()=>{ if(currentBGM===2 && isPlaying) playTone(329.63, 0.08, 'sine'); }, 800); break;
+    case 3: playTone(146.83, 0.13, 'sine'); playTone(185.00, 0.10, 'triangle', 3); playTone(220.00, 0.07, 'sine', -4); break;
+    case 4: playWhiteNoise(0.08); playTone(55, 0.18, 'sine'); playTone(82.41, 0.12, 'triangle'); break;
   }
-  
   isPlaying = true;
   updateBGMUI();
 }
-
-function stopBGM(){
-  stopAll();
-  isPlaying = false;
-  updateBGMUI();
-}
-
+function stopBGM(){ stopAll(); isPlaying = false; updateBGMUI(); }
 function requestBGM(action, data){
   if(!isHost){ alert('🎵 BGM은 방장만 조작 가능 👑'); return; }
   socket.emit('bgmControl', {roomId, action, data});
 }
-
-function toggleBGM(){
-  if(!isHost){ alert('방장만 가능'); return; }
-  requestBGM('toggle');
-}
-
+function toggleBGM(){ if(!isHost){ alert('방장만 가능'); return; } requestBGM('toggle'); }
 function setBGMVol(v){
   if(!isHost) return;
   bgmVol = parseFloat(v);
-  if(masterGain) masterGain.gain.value = bgmVol;
-  requestBGM('volume', {vol: bgmVol});
+  if(masterGain){ masterGain.gain.setValueAtTime(bgmVol, audioContext ? audioContext.currentTime : 0); }
+  const volLabel = document.getElementById('volLabel');
+  const volLabel2 = document.getElementById('volLabel2');
+  if(volLabel) volLabel.textContent = Math.round(bgmVol*100)+'%';
+  if(volLabel2) volLabel2.textContent = Math.round(bgmVol*100)+'%';
+  if(volumeDebounceTimer) clearTimeout(volumeDebounceTimer);
+  volumeDebounceTimer = setTimeout(()=>{ socket.emit('bgmControl', {roomId, action: 'volume', data: {vol: bgmVol}}); volumeDebounceTimer=null; }, 500);
 }
-
-function selectBGM(idx){
-  if(!isHost){ alert('방장만 곡 변경 가능'); return; }
-  console.log('selectBGM clicked', idx);
-  requestBGM('select', {idx: idx});
-}
-
+function selectBGM(idx){ if(!isHost){ alert('방장만 곡 변경 가능'); return; } requestBGM('select', {idx}); }
 function applyBGMState(state){
-  console.log('applyBGMState', state);
   currentBGM = state.idx ?? 0;
-  bgmVol = state.vol ?? 0.15;
+  if(!volumeDebounceTimer){ bgmVol = state.vol ?? 0.15; if(masterGain) masterGain.gain.value = bgmVol; }
+  const wasPlaying = isPlaying;
   isPlaying = state.isPlaying ?? false;
-  
   initAudio();
-  if(masterGain) masterGain.gain.value = bgmVol;
-  
-  if(isPlaying){
-    startBGM(currentBGM);
-  } else {
-    stopAll();
-  }
+  if(masterGain && !volumeDebounceTimer) masterGain.gain.value = bgmVol;
+  if(isPlaying && !wasPlaying){ startBGM(currentBGM); }
+  else if(!isPlaying && wasPlaying){ stopAll(); }
+  else if(isPlaying && currentBGM !== state.idx){ startBGM(state.idx); }
   isPlaying = state.isPlaying;
   updateBGMUI();
 }
-
 function updateBGMUI(){
   const playBtn = document.getElementById('bgmPlayBtn');
   const track = document.getElementById('bgmTrack');
   const volLabel = document.getElementById('volLabel');
-  if(playBtn){
-    playBtn.textContent = isPlaying ? '⏸️' : '🎵';
-    playBtn.classList.toggle('active', isPlaying);
-    playBtn.disabled = !isHost;
-  }
+  if(playBtn){ playBtn.textContent = isPlaying ? '⏸️' : '🎵'; playBtn.classList.toggle('active', isPlaying); playBtn.disabled = !isHost; }
   if(track) track.textContent = (isPlaying ? '▶️ ' : '⏸️ ') + BGM_LIST[currentBGM].name + (isHost ? '' : ' (방장 전용)');
-  if(volLabel) volLabel.textContent = Math.round(bgmVol*100)+'%';
-  const volLabel2 = document.getElementById('volLabel2');
-  if(volLabel2) volLabel2.textContent = Math.round(bgmVol*100)+'%';
-  document.querySelectorAll('.bgmOption').forEach((el,i)=>{
-    el.classList.toggle('active', i===currentBGM);
-    el.style.opacity = isHost ? '1' : '0.6';
-  });
-  document.getElementById('bgmHostBadge').style.display = isHost ? 'inline-block' : 'none';
+  if(volLabel && !volumeDebounceTimer) volLabel.textContent = Math.round(bgmVol*100)+'%';
+  document.querySelectorAll('.bgmOption').forEach((el,i)=>{ el.classList.toggle('active', i===currentBGM); el.style.opacity = isHost ? '1' : '0.6'; });
+  const badge = document.getElementById('bgmHostBadge');
+  if(badge) badge.style.display = isHost ? 'inline-block' : 'none';
   const action = document.getElementById('bgmAction');
   if(action) action.textContent = isPlaying ? '일시정지 (방장)' : '재생하기 (방장)';
 }
-
 function closeAllSheets(){ document.getElementById('clipSheet')?.classList.remove('show'); document.getElementById('bgmSheet')?.classList.remove('show'); document.getElementById('overlay')?.classList.remove('show'); }
 function openClip(){ document.getElementById('clipSheet').classList.add('show'); document.getElementById('overlay').classList.add('show'); }
 function openBGMSheet(){ document.getElementById('bgmSheet').classList.add('show'); document.getElementById('overlay').classList.add('show'); updateBGMUI(); }
-
-let currentPhotoUrl = '';
-let currentPhotoName = '';
-function openPhotoModal(url, name){
-  currentPhotoUrl = url;
-  currentPhotoName = name;
-  const modal = document.getElementById('photoModal');
-  document.getElementById('modalImg').src = url;
-  document.getElementById('modalInfo').textContent = name;
-  modal.classList.add('show');
-}
+let currentPhotoUrl = ''; let currentPhotoName = '';
+function openPhotoModal(url, name){ currentPhotoUrl = url; currentPhotoName = name; document.getElementById('modalImg').src = url; document.getElementById('modalInfo').textContent = name; document.getElementById('photoModal').classList.add('show'); }
 function closePhotoModal(){ document.getElementById('photoModal').classList.remove('show'); }
-function downloadCurrentPhoto(){
-  if(!currentPhotoUrl) return;
-  const a = document.createElement('a'); a.href = currentPhotoUrl; a.download = currentPhotoName || 'photo.jpg';
-  document.body.appendChild(a); a.click(); document.body.removeChild(a);
-}
-
-const EMOJI_GROUPS = {
-  '반응': ['👍 좋아요','❤️ 하트','😂 웃겨','😢 슬퍼요','👏 짝짝'],
-  '축하': ['🎉 축하해','🎂 생일축하','🥳 파티','🎁 선물','🏆 1등','👑 왕관'],
-  '일상': ['☕ 커피','🍺 맥주','💪 화이팅','👋 하이','💤 잘자','🏃 운동']
-};
-
-function toggleTheme(){
-  theme = theme==='light' ? 'dark' : 'light';
-  document.documentElement.setAttribute('data-theme', theme);
-  localStorage.setItem('chatTheme', theme);
-  const btn=document.getElementById('themeBtn');
-  if(btn) btn.textContent = theme==='dark' ? '☀️' : '🌙';
-}
-
+function downloadCurrentPhoto(){ if(!currentPhotoUrl) return; const a = document.createElement('a'); a.href = currentPhotoUrl; a.download = currentPhotoName || 'photo.jpg'; document.body.appendChild(a); a.click(); document.body.removeChild(a); }
+const EMOJI_GROUPS = { '반응': ['👍 좋아요','❤️ 하트','😂 웃겨','😢 슬퍼요','👏 짝짝'], '축하': ['🎉 축하해','🎂 생일축하','🥳 파티','🎁 선물','🏆 1등','👑 왕관'], '일상': ['☕ 커피','🍺 맥주','💪 화이팅','👋 하이','💤 잘자','🏃 운동'] };
+function toggleTheme(){ theme = theme==='light' ? 'dark' : 'light'; document.documentElement.setAttribute('data-theme', theme); localStorage.setItem('chatTheme', theme); const btn=document.getElementById('themeBtn'); if(btn) btn.textContent = theme==='dark' ? '☀️' : '🌙'; }
 function renderLogin(){
  appEl.innerHTML=\`
  <div class="login">
-  <div style="display:flex;justify-content:space-between;align-items:center"><h1>🐣 채팅 입장</h1><div class="iconCircle" onclick="toggleTheme()">\${theme==='dark'?'☀️':'🌙'}</div></div>
-  <p style="color:#888;font-size:12px">BGM 5곡 내부 생성 - 외부 링크 없음!</p>
+  <div style="display:flex;justify-content:space-between;align-items:center"><h1>🐣 실시간 채팅</h1><div class="iconCircle" onclick="toggleTheme()">\${theme==='dark'?'☀️':'🌙'}</div></div>
   <input id="nameIn" placeholder="내 이름" />
   <div><p style="font-size:13px;margin-bottom:8px">내 캐릭터</p><div class="chars" id="chars"></div></div>
   <input id="roomIn" placeholder="방 이름" value="main-room"/>
   <button onclick="enter()">입장하기 →</button>
-  <div style="border:1px solid var(--border);border-radius:12px;padding:10px;background:var(--inputBg)">
-    <p style="font-size:11px;font-weight:700">🎵 BGM 테스트 (방 입장 전)</p>
-    <div style="display:flex;gap:4px;flex-wrap:wrap;margin-top:6px">
-      \${BGM_LIST.map((b,i)=>\`<button class="testBtn" onclick="testBGM(\${i})">\${b.name}</button>\`).join('')}
-    </div>
-    <div style="display:flex;gap:6px;margin-top:8px"><button class="testBtn" onclick="stopAll(); isPlaying=false; updateBGMUI()">⏹️ 정지</button><span style="font-size:10px;color:#888">외부 링크 없이 내부 생성 - 5곡 모두 작동</span></div>
-  </div>
  </div>\`;
  const emojis=['🐻','🐱','🐶','🐰','🦊','🐼','🐨','🐯','🐸','🐵','🦁','🐧'];
  let sel=emojis[0];
@@ -395,27 +239,14 @@ function renderLogin(){
  });
  window._sel=()=>sel;
 }
-
-function testBGM(idx){
-  initAudio();
-  if(audioContext.state === 'suspended') audioContext.resume();
-  currentBGM = idx;
-  startBGM(idx);
-  isPlaying = true;
-  updateBGMUI();
-}
-
 function enter(){
  const name=document.getElementById('nameIn').value.trim();
  if(!name) return alert('이름 입력해줘');
  roomId=document.getElementById('roomIn').value.trim()||'main-room';
  myInfo={username:name, character:window._sel(), roomId};
- // 입장 전 테스트 음악 정지
- stopAll(); isPlaying=false;
  initSocket();
  renderChat();
 }
-
 function initSocket(){
  socket = io({transports:['websocket','polling']});
  socket.emit('joinRoom', myInfo);
@@ -433,22 +264,16 @@ function initSocket(){
  socket.on('participantsUpdate', (data)=>{ renderParticipants(data.participants, data.hostId); });
  socket.on('bgmState', (state)=>{ applyBGMState(state); });
 }
-
 function updateHeader(){
  const saveBtn = document.getElementById('saveBtn');
  const crown = document.getElementById('crown');
  if(saveBtn){ saveBtn.classList.toggle('show', isHost); }
  if(crown){ crown.classList.toggle('show', isHost); }
 }
-
 function renderChat(){
  const tabs = Object.keys(EMOJI_GROUPS).map((k,i)=>\`<button class="qTab \${i==0?'active':''}" onclick="switchTab(this,'\${k}')">\${k}</button>\`).join('');
  const firstGroup = EMOJI_GROUPS[Object.keys(EMOJI_GROUPS)[0]].map(e=>emojiBtnHtml(e)).join('');
- const bgmOptions = BGM_LIST.map((b,i)=>\`
-   <div class="bgmOption \${i===currentBGM?'active':''}" onclick="selectBGM(\${i})">
-     <div><b>\${b.name}</b><br><span style="font-size:11px;color:#888">\${b.desc} - 내부 생성</span></div>
-     <div>\${i===currentBGM?'✅':''}</div>
-   </div>\`).join('');
+ const bgmOptions = BGM_LIST.map((b,i)=>\`<div class="bgmOption \${i===currentBGM?'active':''}" onclick="selectBGM(\${i})"><div><b>\${b.name}</b><br><span style="font-size:11px;color:#888">\${b.desc}</span></div><div>\${i===currentBGM?'✅':''}</div></div>\`).join('');
  appEl.innerHTML=\`
   <div class="header">
     <b><span id="crown" class="crown">👑 방장</span> \${myInfo.character} \${myInfo.username}</b>
@@ -461,7 +286,7 @@ function renderChat(){
     <button class="bgmBtn" id="bgmPlayBtn" onclick="toggleBGM()">🎵</button>
     <div class="track" id="bgmTrack" onclick="openBGMSheet()">\${BGM_LIST[currentBGM].name}</div>
     <span id="bgmHostBadge" class="badge" style="display:none">방장 전용</span>
-    <input type="range" id="volRange" min="0" max="0.5" step="0.01" value="\${bgmVol}" oninput="setBGMVol(this.value)"/>
+    <input type="range" id="volRange" min="0" max="0.5" step="0.01" value="\${bgmVol}" oninput="setBGMVol(this.value)" onchange="setBGMVol(this.value)"/>
     <span style="font-size:10px;color:#888" id="volLabel">\${Math.round(bgmVol*100)}%</span>
     <button class="bgmBtn" onclick="openBGMSheet()">⋯</button>
   </div>
@@ -483,9 +308,9 @@ function renderChat(){
   </div>
   <div class="bgmSheet" id="bgmSheet">
     <div class="sheetHeader"><span>🎵 배경음악 5종 <span class="badge">방장 전용</span></span><button onclick="closeAllSheets()" style="border:none;background:none;font-size:20px;color:var(--text)">✕</button></div>
-    <p style="font-size:11px;color:#888">👑 방장만 조작 가능. 내부 생성 사운드 - 5곡 모두 100% 작동. 외부 링크 없음.</p>
+    <p style="font-size:11px;color:#888">👑 방장만 조작 가능. 볼륨 조절 시 도배 안 함!</p>
     \${bgmOptions}
-    <div style="display:flex;gap:8px;align-items:center;margin-top:8px"><span style="font-size:11px">볼륨:</span><input type="range" id="volRange2" min="0" max="0.5" step="0.01" value="\${bgmVol}" oninput="setBGMVol(this.value)" style="flex:1"/><span style="font-size:11px" id="volLabel2">\${Math.round(bgmVol*100)}%</span></div>
+    <div style="display:flex;gap:8px;align-items:center;margin-top:8px"><span style="font-size:11px">볼륨:</span><input type="range" id="volRange2" min="0" max="0.5" step="0.01" value="\${bgmVol}" oninput="setBGMVol(this.value)" onchange="setBGMVol(this.value)" style="flex:1"/><span style="font-size:11px" id="volLabel2">\${Math.round(bgmVol*100)}%</span></div>
     <button class="sheetBtn" onclick="toggleBGM()"><div class="ico">🎵</div><div><b id="bgmAction">재생하기</b><br><span style="font-size:11px;color:#888">방장 전용</span></div></button>
   </div>
   <div class="inputArea">
@@ -496,7 +321,6 @@ function renderChat(){
    <button class="iconBtn" id="emojiBtn">😊</button>
    <button class="iconBtn send" id="sendBtn">↑</button>
   </div>\`;
- 
  document.getElementById('clipBtn').addEventListener('click', openClip);
  document.getElementById('emojiBtn').addEventListener('click', toggleEmojiBar);
  document.getElementById('sendBtn').addEventListener('click', sendText);
@@ -510,7 +334,6 @@ function renderChat(){
  updateHeader();
  updateBGMUI();
 }
-
 function emojiBtnHtml(full){ const emoji=full.split(' ')[0]; const label=full.split(' ').slice(1).join(' '); return \`<button class="eBtn" onclick="insertEmoji('\${full.replace(/'/g, "\\\\'")}')"><span style="font-size:16px">\${emoji}</span> \${label}</button>\`; }
 function switchTab(btn,group){ document.querySelectorAll('.qTab').forEach(b=>b.classList.remove('active')); btn.classList.add('active'); document.getElementById('emojiBar').innerHTML=EMOJI_GROUPS[group].map(e=>emojiBtnHtml(e)).join(''); }
 function insertEmoji(full){
@@ -620,15 +443,15 @@ io.on('connection', (socket)=>{
     socket.emit('bgmState', room.bgmState);
   });
   socket.on('bgmControl', (data)=>{
-    const room = rooms[data.roomId];
-    if(!room){ socket.emit('bgmError','방 없음'); return; }
-    if(room.hostId !== socket.id){ socket.emit('bgmError','방장만 가능'); return; }
+    const room = rooms[data.roomId]; if(!room) return;
+    if(room.hostId !== socket.id){ return; }
     const state = room.bgmState;
-    if(data.action === 'toggle'){ state.isPlaying = !state.isPlaying; }
-    else if(data.action === 'select'){ const idx = data.data.idx; if(idx >=0 && idx < 5){ state.idx = idx; state.isPlaying = true; } }
-    else if(data.action === 'volume'){ state.vol = Math.min(0.5, Math.max(0, data.data.vol)); }
+    let shouldBroadcastSystem = false; let systemMsg = '';
+    if(data.action === 'toggle'){ state.isPlaying = !state.isPlaying; shouldBroadcastSystem = true; systemMsg = `🎵 BGM: ${['로파이1','카페 로파이','빗소리 피아노','새벽 재즈','숲속 바람'][state.idx]} ${state.isPlaying ? '▶️ 재생' : '⏸️ 정지'} (방장)`; }
+    else if(data.action === 'select'){ const idx = data.data.idx; if(idx >=0 && idx < 5){ state.idx = idx; state.isPlaying = true; shouldBroadcastSystem = true; systemMsg = `🎵 BGM: ${['로파이1','카페 로파이','빗소리 피아노','새벽 재즈','숲속 바람'][state.idx]} ▶️ 재생 (방장)`; } }
+    else if(data.action === 'volume'){ state.vol = Math.min(0.5, Math.max(0, data.data.vol)); shouldBroadcastSystem = false; }
     io.to(data.roomId).emit('bgmState', state);
-    io.to(data.roomId).emit('systemMessage', `🎵 BGM: ${['로파이1','카페 로파이','빗소리 피아노','새벽 재즈','숲속 바람'][state.idx]} ${state.isPlaying ? '▶️' : '⏸️'} (방장)`);
+    if(shouldBroadcastSystem){ io.to(data.roomId).emit('systemMessage', systemMsg); }
   });
   socket.on('chatMessage', (data)=>{
     const room = rooms[data.roomId]; if(!room) return; const user=room.users[socket.id]; if(!user) return;
@@ -676,4 +499,4 @@ app.get('/export', (req,res)=>{
   const text = all.map(m=>`[${new Date(m.id).toLocaleString('ko-KR')}] ${m.character} ${m.username}${m.isHost?'👑':''}: ${m.text||m.fileName}`).join('\\n');
   res.type('text/plain').send(text);
 });
-server.listen(PORT, ()=> console.log(`✅ BGM 5곡 내부생성 100% 작동 on ${PORT}`));
+server.listen(PORT, ()=> console.log(`✅ Final fixed on ${PORT}`));
