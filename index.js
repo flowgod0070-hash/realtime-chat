@@ -11,65 +11,109 @@ const __dirname = path.dirname(__filename);
 const app = express();
 const server = http.createServer(app);
 const io = new Server(server, { cors: { origin: "*" } });
-
 const PORT = process.env.PORT || 10000;
 
-// 모든 정적 파일 위치 후보
-const possiblePaths = [
-  path.join(__dirname, 'index.html'),
-  path.join(__dirname, '..', 'index.html'),
-  path.join(process.cwd(), 'index.html'),
-  path.join(process.cwd(), 'src', 'index.html'),
-  '/opt/render/project/src/index.html',
-  '/opt/render/project/index.html'
+function listFiles(dir, depth = 0) {
+  if (depth > 3) return [];
+  try {
+    const files = fs.readdirSync(dir);
+    let result = [`📁 ${dir}: ${files.join(', ')}`];
+    for (const f of files) {
+      const full = path.join(dir, f);
+      try {
+        if (fs.statSync(full).isDirectory() && !f.startsWith('node_modules') && !f.startsWith('.git')) {
+          result = result.concat(listFiles(full, depth + 1));
+        }
+      } catch {}
+    }
+    return result;
+  } catch (e) {
+    return [`❌ Cannot read ${dir}: ${e.message}`];
+  }
+}
+
+function findFile(name, searchRoots) {
+  for (const root of searchRoots) {
+    try {
+      const files = fs.readdirSync(root);
+      if (files.includes(name)) return path.join(root, name);
+      // 하위 폴더도 탐색
+      for (const f of files) {
+        const full = path.join(root, f);
+        try {
+          if (fs.statSync(full).isDirectory() && !f.startsWith('node_modules')) {
+            const subFiles = fs.readdirSync(full);
+            if (subFiles.includes(name)) return path.join(full, name);
+          }
+        } catch {}
+      }
+    } catch {}
+  }
+  return null;
+}
+
+const searchRoots = [
+  __dirname,
+  path.join(__dirname, '..'),
+  process.cwd(),
+  path.join(process.cwd(), '..'),
+  '/opt/render/project',
+  '/opt/render/project/src',
+  '/opt/render/project/src/src',
 ];
 
+console.log('=== FILE SYSTEM DEBUG ===');
+for (const dir of [...new Set(searchRoots)]) {
+  console.log(listFiles(dir, 1).join('\n'));
+}
+
 app.get('/', (req, res) => {
-  for (const p of possiblePaths) {
-    if (fs.existsSync(p)) {
-      console.log(`Serving index.html from: ${p}`);
-      return res.sendFile(p);
-    }
+  const found = findFile('index.html', searchRoots);
+  if (found) {
+    console.log(`✅ Serving index.html from: ${found}`);
+    return res.sendFile(found);
   }
-  console.error('index.html not found');
-  const cwdFiles = fs.existsSync(process.cwd()) ? fs.readdirSync(process.cwd()).join(', ') : 'none';
-  const dirFiles = fs.readdirSync(__dirname).join(', ');
+  
+  console.log('❌ index.html not found anywhere!');
+  const debug = searchRoots.map(d => listFiles(d, 2).join('\n')).join('\n\n');
+  
   return res.status(404).send(`
-    <h1>index.html을 찾을 수 없습니다</h1>
-    <p>시도한 경로: ${possiblePaths.join('<br>')}</p>
-    <p>__dirname: ${__dirname} => ${dirFiles}</p>
-    <p>cwd: ${process.cwd()} => ${cwdFiles}</p>
+    <html><head><meta charset="UTF-8"><title>디버그</title></head><body style="font-family:monospace;padding:20px;white-space:pre-wrap;">
+    <h1>🔍 index.html을 찾을 수 없습니다</h1>
+    <p>__dirname: ${__dirname}</p>
+    <p>cwd: ${process.cwd()}</p>
+    <h2>파일 시스템:</h2>
+    ${debug}
+    <h2>해결방법:</h2>
+    1. GitHub에 index.html이 있는지 확인<br>
+    2. Render Settings -> Root Directory가 비어있는지 확인 (빈칸)<br>
+    3. Manual Deploy 다시 실행<br>
+    </body></html>
   `);
 });
 
 app.use(express.static(__dirname));
 app.use(express.static(path.join(__dirname, '..')));
 app.use(express.static(process.cwd()));
+app.use(express.static('/opt/render/project'));
+app.use(express.static('/opt/render/project/src'));
 
 let users = {};
-
 io.on('connection', (socket) => {
   socket.on('joinRoom', (data) => {
     socket.join(data.roomId);
     users[socket.id] = data;
     socket.to(data.roomId).emit('systemMessage', `${data.character} ${data.username}님이 입장하셨습니다`);
   });
-
   socket.on('chatMessage', (data) => {
-    const msg = { ...data, id: Date.now() };
-    io.to(data.roomId).emit('chatMessage', msg);
+    io.to(data.roomId).emit('chatMessage', { ...data, id: Date.now() });
   });
-
   socket.on('fileMessage', (data) => {
-    const msg = { ...data, id: Date.now() };
-    io.to(data.roomId).emit('fileMessage', msg);
+    io.to(data.roomId).emit('fileMessage', { ...data, id: Date.now() });
   });
-
   socket.on('voiceMessage', (data) => {
-    const msg = { ...data, id: Date.now() };
-    io.to(data.roomId).emit('voiceMessage', msg);
+    io.to(data.roomId).emit('voiceMessage', { ...data, id: Date.now() });
   });
-
   socket.on('disconnect', () => {
     const u = users[socket.id];
     if(u){
@@ -80,7 +124,5 @@ io.on('connection', (socket) => {
 });
 
 server.listen(PORT, () => {
-  console.log(`Server running on http://localhost:${PORT}`);
-  console.log(`__dirname: ${__dirname}`);
-  console.log(`cwd: ${process.cwd()}`);
+  console.log(`Server running on port ${PORT}`);
 });
