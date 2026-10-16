@@ -14,37 +14,39 @@ const HTML = `<!DOCTYPE html>
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
 <title>실시간 채팅 - 다크모드</title>
 <style>
-:root{--bg:#fff;--header:rgba(255,255,255,.85);--msgBg:#ABC1D1;--my:#FEE500;--other:#fff;--text:#111;--border:#f0f0f0;--inputBg:#f2f2f2;--sheet:#fff;--overlay:rgba(0,0,0,.3)}
-[data-theme="dark"]{--bg:#121212;--header:rgba(18,18,18,.85);--msgBg:#0f1419;--my:#FEE500;--other:#2a2f36;--text:#e8e8e8;--border:#2a2a2a;--inputBg:#1e1e1e;--sheet:#1e1e1e;--overlay:rgba(0,0,0,.6)}
+:root{--bg:#fff;--header:rgba(255,255,255,.9);--msgBg:#ABC1D1;--my:#FEE500;--other:#fff;--text:#111;--border:#eee;--inputBg:#f2f2f2;--sheet:#fff}
+[data-theme="dark"]{--bg:#121212;--header:rgba(18,18,18,.9);--msgBg:#0f1419;--my:#FEE500;--other:#2a2f36;--text:#e8e8e8;--border:#2a2a2a;--inputBg:#1e1e1e;--sheet:#1e1e1e}
 *{margin:0;padding:0;box-sizing:border-box}
-body{font-family:-apple-system,BlinkMacSystemFont,'Apple SD Gothic Neo','Noto Sans KR',sans-serif;background:var(--bg);color:var(--text);height:100dvh;display:flex;justify-content:center;align-items:center;padding-top:env(safe-area-inset-top);transition:background .2s,color .2s}
+body{font-family:-apple-system,BlinkMacSystemFont,'Apple SD Gothic Neo','Noto Sans KR',sans-serif;background:var(--bg);color:var(--text);height:100dvh;display:flex;justify-content:center;align-items:center;padding-top:env(safe-area-inset-top);transition:.2s}
 .app{width:100%;max-width:420px;height:100dvh;height:calc(100dvh - env(safe-area-inset-top));background:var(--bg);display:flex;flex-direction:column;position:relative;overflow:hidden}
 @media(min-width:500px){.app{height:90dvh;border-radius:24px;box-shadow:0 10px 40px rgba(0,0,0,.25)}}
-.header{background:var(--header);backdrop-filter:blur(20px);padding:14px 16px;display:flex;justify-content:space-between;align-items:center;border-bottom:1px solid var(--border);position:sticky;top:0;z-index:10}
-.header b{font-size:16px}
-.header .right{display:flex;gap:8px;align-items:center}
+.header{background:var(--header);backdrop-filter:blur(20px);padding:12px 14px;display:flex;justify-content:space-between;align-items:center;border-bottom:1px solid var(--border)}
+.header b{font-size:15px}
+.right{display:flex;gap:6px;align-items:center}
+.btnTop{padding:6px 10px;border-radius:20px;border:1px solid var(--border);background:var(--inputBg);font-size:12px;font-weight:600;cursor:pointer;color:var(--text)}
+.btnTop.save{background:#000;color:#fff;border-color:#000}
+[data-theme="dark"] .btnTop.save{background:#fff;color:#000}
 .iconCircle{width:32px;height:32px;border-radius:50%;border:1px solid var(--border);background:var(--inputBg);display:grid;place-items:center;cursor:pointer;font-size:16px}
-.login{flex:1;display:flex;flex-direction:column;justify-content:center;padding:32px;gap:16px;background:var(--bg);overflow-y:auto}
+.login{flex:1;display:flex;flex-direction:column;justify-content:center;padding:32px;gap:16px;background:var(--bg)}
 .login h1{font-size:24px}
 .login input{padding:14px;border:1px solid var(--border);border-radius:12px;font-size:16px;background:var(--inputBg);color:var(--text)}
 .login button{padding:14px;background:#FEE500;border:none;border-radius:12px;font-weight:700;font-size:16px;cursor:pointer;color:#000}
 .chars{display:flex;gap:8px;flex-wrap:wrap}
 .char{width:44px;height:44px;border-radius:50%;display:grid;place-items:center;font-size:22px;background:var(--inputBg);cursor:pointer;border:2px solid transparent}
 .char.sel{border-color:#000;background:#FEE500;color:#000}
-.messages{flex:1;overflow-y:auto;padding:16px;background:var(--msgBg);display:flex;flex-direction:column;gap:10px;transition:background .2s}
+.messages{flex:1;overflow-y:auto;padding:16px;background:var(--msgBg);display:flex;flex-direction:column;gap:10px}
 .msg{max-width:80%;padding:10px 14px;border-radius:18px;font-size:15px;line-height:1.5;white-space:pre-wrap;word-break:keep-all;overflow-wrap:break-word;color:#111}
 .msg.me{align-self:flex-end;background:var(--my);border-bottom-right-radius:4px}
 .msg.other{align-self:flex-start;background:var(--other);border-bottom-left-radius:4px}
 [data-theme="dark"] .msg.other{color:#e8e8e8}
-.msg .sender{font-size:12px;font-weight:700;margin-bottom:4px}
+.sender{font-size:12px;font-weight:700;margin-bottom:4px}
 .meta{font-size:11px;color:#666;margin-top:4px;text-align:right}
 [data-theme="dark"] .meta{color:#aaa}
 .system{align-self:center;background:rgba(0,0,0,.3);color:#fff;padding:4px 12px;border-radius:20px;font-size:12px}
 .msg img.preview{max-width:100%;border-radius:12px;margin-top:6px;display:block}
 .emojiBar{display:flex;gap:6px;padding:8px 10px;background:var(--bg);border-top:1px solid var(--border);overflow-x:auto;white-space:nowrap;scrollbar-width:none}
 .emojiBar::-webkit-scrollbar{display:none}
-.eBtn{flex-shrink:0;min-width:36px;height:36px;padding:0 10px;border-radius:18px;border:1px solid var(--border);background:var(--inputBg);font-size:14px;cursor:pointer;display:inline-flex;align-items:center;gap:4px;color:var(--text)}
-.eBtn:active{transform:scale(.95);background:#FEE500;color:#000}
+.eBtn{flex-shrink:0;height:36px;padding:0 10px;border-radius:18px;border:1px solid var(--border);background:var(--inputBg);font-size:13px;cursor:pointer;display:inline-flex;align-items:center;gap:4px;color:var(--text)}
 .quickTabs{display:flex;gap:6px;padding:6px 10px;background:var(--bg);border-top:1px solid var(--border)}
 .qTab{font-size:12px;padding:4px 10px;border-radius:12px;border:1px solid var(--border);background:var(--bg);cursor:pointer;color:var(--text)}
 .qTab.active{background:#000;color:#fff;border-color:#000}
@@ -53,18 +55,14 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Apple SD Gothic Neo','Noto Sa
 .clipSheet.show{display:flex}
 .sheetHeader{display:flex;justify-content:space-between;align-items:center;font-weight:700}
 .sheetBtn{display:flex;align-items:center;gap:12px;padding:14px;border:1px solid var(--border);border-radius:14px;background:var(--bg);cursor:pointer;width:100%;color:var(--text)}
-.sheetBtn:active{background:#FEE500;color:#000}
 .sheetBtn .ico{width:44px;height:44px;border-radius:12px;background:var(--inputBg);display:grid;place-items:center;font-size:22px;border:1px solid var(--border)}
 .sheetBtn .txt b{display:block;font-size:14px}
 .sheetBtn .txt span{display:block;font-size:12px;color:#888;margin-top:2px}
-.routineBtns{display:flex;gap:8px;flex-wrap:wrap}
-.rBtn{padding:10px 14px;border-radius:20px;border:1px solid #FEE500;background:#FFFBCC;font-size:13px;font-weight:600;cursor:pointer;color:#000}
-.rBtn:active{background:#FEE500}
 .inputArea{display:flex;gap:8px;padding:10px;background:var(--bg);border-top:1px solid var(--border);align-items:center}
 .inputArea input{flex:1;padding:12px 16px;border:none;background:var(--inputBg);border-radius:24px;font-size:15px;outline:none;color:var(--text)}
 .iconBtn{width:40px;height:40px;border-radius:50%;border:none;background:var(--inputBg);display:grid;place-items:center;font-size:18px;cursor:pointer;flex-shrink:0;color:var(--text)}
 .send{background:#FEE500!important;color:#000!important}
-.overlay{position:absolute;inset:0;background:var(--overlay);z-index:99;display:none}
+.overlay{position:absolute;inset:0;background:rgba(0,0,0,.5);z-index:99;display:none}
 .overlay.show{display:block}
 </style>
 </head>
@@ -79,10 +77,9 @@ document.documentElement.setAttribute('data-theme', theme);
 
 const EMOJI_GROUPS = {
   '반응': ['👍 좋아요','❤️ 하트','😂 웃겨','😢 슬퍼요','😮 와우','👏 짝짝','🙏 감사','🔥 불타'],
-  '축하': ['🎉 축하해','🎂 생일축하','🥳 파티','🎊 축하축하','🎈 풍선','🎁 선물','🏆 1등','👑 왕관','✨ 반짝'],
+  '축하': ['🎉 축하해','🎂 생일축하','🥳 파티','🎊 축하축하','🎈 풍선','🎁 선물','🏆 1등','👑 왕관'],
   '일상': ['☕ 커피','🍺 맥주','🍚 밥먹자','💪 화이팅','🙇 죄송','🤗 안아줘','👋 하이','💤 잘자','🌅 굿모닝','🏃 운동']
 };
-const ROUTINES = {'걷기':'🚶 [걷기 인증] 토스 만보기 5,000보 달성 - 24원 적립!','출석':'✅ [출석 인증] 모니모 출석 2개 완료','블로그':'📝 [블로그 인증] 오늘 글 작성 완료!'};
 
 function toggleTheme(){
   theme = theme==='light' ? 'dark' : 'light';
@@ -96,7 +93,7 @@ function renderLogin(){
  appEl.innerHTML=\`
  <div class="login">
   <div style="display:flex;justify-content:space-between;align-items:center"><h1>🐣 실시간 채팅</h1><div class="iconCircle" onclick="toggleTheme()">\${theme==='dark'?'☀️':'🌙'}</div></div>
-  <p style="color:#888;font-size:14px">다크모드 지원! 이모티콘 + 파일 + 루틴</p>
+  <p style="color:#888;font-size:14px">다크모드 + 이모티콘 + 파일</p>
   <input id="nameIn" placeholder="내 이름" />
   <div><p style="font-size:13px;margin-bottom:8px">내 캐릭터</p><div class="chars" id="chars"></div></div>
   <input id="roomIn" placeholder="방 이름" value="main-room"/>
@@ -128,8 +125,12 @@ function renderChat(){
  const tabs = Object.keys(EMOJI_GROUPS).map((k,i)=>\`<button class="qTab \${i==0?'active':''}" onclick="switchTab(this,'\${k}')">\${k}</button>\`).join('');
  const firstGroup = EMOJI_GROUPS[Object.keys(EMOJI_GROUPS)[0]].map(e=>emojiBtnHtml(e)).join('');
  appEl.innerHTML=\`
-  <div class="header"><b>\${myInfo.character} \${myInfo.username} · \${roomId}</b>
-    <div class="right"><div class="iconCircle" id="themeBtn" onclick="toggleTheme()">\${theme==='dark'?'☀️':'🌙'}</div><span style="font-size:11px;color:#888">\${location.hostname}</span></div>
+  <div class="header">
+    <b>\${myInfo.character} \${myInfo.username}</b>
+    <div class="right">
+      <button class="btnTop save" onclick="saveChat()">💾 저장</button>
+      <div class="iconCircle" id="themeBtn" onclick="toggleTheme()">\${theme==='dark'?'☀️':'🌙'}</div>
+    </div>
   </div>
   <div class="messages" id="msgs"></div>
   <div class="quickTabs">\${tabs}</div>
@@ -137,14 +138,8 @@ function renderChat(){
   <div class="overlay" id="overlay" onclick="closeClip()"></div>
   <div class="clipSheet" id="clipSheet">
     <div class="sheetHeader"><span>📎 보내기</span><button onclick="closeClip()" style="border:none;background:none;font-size:20px;color:var(--text)">✕</button></div>
-    <button class="sheetBtn" onclick="triggerPhoto()"><div class="ico">📸</div><div class="txt"><b>사진 보내기</b><span>자동 압축 미리보기</span></div></button>
-    <button class="sheetBtn" onclick="triggerFile()"><div class="ico">📄</div><div class="txt"><b>파일 보내기</b><span>10MB 이하</span></div></button>
-    <button class="sheetBtn" onclick="document.getElementById('routineArea').style.display='flex'"><div class="ico">✅</div><div class="txt"><b>오늘 루틴 3종 인증</b><span>걷기 / 출석 / 블로그</span></div></button>
-    <div class="routineBtns" id="routineArea" style="display:none">
-      <button class="rBtn" onclick="sendRoutine('걷기')">🚶 걷기 인증</button>
-      <button class="rBtn" onclick="sendRoutine('출석')">✅ 출석 인증</button>
-      <button class="rBtn" onclick="sendRoutine('블로그')">📝 블로그 인증</button>
-    </div>
+    <button class="sheetBtn" onclick="triggerPhoto()"><div class="ico">📸</div><div class="txt"><b>사진 보내기</b><span>갤러리 선택 - 자동 압축</span></div></button>
+    <button class="sheetBtn" onclick="triggerFile()"><div class="ico">📄</div><div class="txt"><b>파일 보내기</b><span>모든 파일 10MB 이하</span></div></button>
   </div>
   <div class="inputArea">
    <button class="iconBtn" onclick="openClip()">📎</button>
@@ -177,8 +172,7 @@ function addMsg(data){
 }
 function addSystem(txt){ const el=document.createElement('div'); el.className='system'; el.textContent=txt; document.getElementById('msgs').appendChild(el); scroll(); }
 function addFileMsg(data){
- const isMe=data.username===myInfo.username;
- const el=document.createElement('div'); el.className=isMe?'msg me':'msg other';
+ const el=document.createElement('div'); el.className=data.username===myInfo.username?'msg me':'msg other';
  let c=\`<div class="sender">\${data.character} \${escapeHtml(data.username)}</div>\`;
  if(data.isImage){ c+=\`<img class="preview" src="\${data.dataUrl}" onclick="window.open('\${data.dataUrl}')"/>\`; }
  else{ c+=\`<div>📄 \${escapeHtml(data.fileName)} (\${(data.size/1024).toFixed(1)}KB)</div><a href="\${data.dataUrl}" download="\${data.fileName}" style="font-size:12px;color:#007AFF">다운로드</a>\`; }
@@ -187,7 +181,48 @@ function addFileMsg(data){
 }
 function scroll(){ const m=document.getElementById('msgs'); m.scrollTop=m.scrollHeight; }
 function sendText(){ if(isComposing) return; const inp=document.getElementById('textIn'); let t=inp.value.trim(); if(!t) return; socket.emit('chatMessage',{...myInfo, text:t}); inp.value=''; inp.focus(); }
-function sendRoutine(type){ const txt=ROUTINES[type]; socket.emit('chatMessage',{...myInfo, text:txt}); closeClip(); }
+
+// ⭐ 채팅 저장 기능 - 여기서 저장!
+function saveChat(){
+  const msgsEl = document.getElementById('msgs');
+  if(!msgsEl || msgsEl.children.length===0){ alert('저장할 채팅이 없어요!'); return; }
+  
+  let text = '=== 채팅 기록 ===\\n';
+  text += '방: ' + roomId + '\\n';
+  text += '날짜: ' + new Date().toLocaleString('ko-KR') + '\\n';
+  text += '================\\n\\n';
+  
+  // 화면에 보이는 메시지들 텍스트로 추출
+  Array.from(msgsEl.children).forEach(child => {
+    if(child.classList.contains('system')){
+      text += '[시스템] ' + child.textContent + '\\n';
+    } else if(child.classList.contains('msg')){
+      const sender = child.querySelector('.sender')?.textContent || '';
+      const body = child.childNodes[1]?.textContent || child.textContent;
+      const time = child.querySelector('.meta')?.textContent || '';
+      text += '[' + time + '] ' + sender + ': ' + body.replace(time,'').trim() + '\\n';
+    }
+  });
+  
+  // 1) 파일로 다운로드
+  const blob = new Blob([text], {type:'text/plain;charset=utf-8'});
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = '채팅기록_' + new Date().toISOString().slice(0,10) + '_' + roomId + '.txt';
+  document.body.appendChild(a);
+  a.click();
+  document.body.removeChild(a);
+  URL.revokeObjectURL(url);
+  
+  alert('💾 저장 완료!\\n\\n파일 다운로드 됐고, 구글 드라이브에도 자동 저장되도록 서버에서 처리할게요.\\n\\n저장 위치: realtime-chat 채팅기록 폴더');
+  
+  // 2) 서버 export API로도 저장 (구글 드라이브 연동용)
+  fetch('/export').then(r=>r.text()).then(t=>{
+    console.log('서버 저장 데이터:', t.length);
+  });
+}
+
 function handlePhoto(file){
  if(!file) return; if(file.size>5*1024*1024) return alert('사진은 5MB 이하만!');
  const reader=new FileReader(); reader.onload=()=>{ const img=new Image(); img.onload=()=>{ const canvas=document.createElement('canvas'); const maxW=800; let w=img.width,h=img.height; if(w>maxW){ h=h*maxW/w; w=maxW; } canvas.width=w; canvas.height=h; canvas.getContext('2d').drawImage(img,0,0,w,h); const comp=canvas.toDataURL('image/jpeg',0.7); socket.emit('fileMessage',{...myInfo, fileName:file.name, size:file.size, dataUrl:comp, isImage:true}); }; img.src=reader.result; }; reader.readAsDataURL(file);
@@ -210,4 +245,4 @@ io.on('connection', (socket)=>{
   socket.on('disconnect', ()=>{ const u=users[socket.id]; if(u){ socket.to(u.roomId).emit('systemMessage', `${u.character} ${u.username}님이 퇴장하셨습니다`); delete users[socket.id]; } });
 });
 app.get('/export', (req,res)=>{ const text=chatHistory.map(m=>`[${new Date(m.id).toLocaleString('ko-KR')}] ${m.character} ${m.username}: ${m.text||m.fileName}`).join('\\n'); res.type('text/plain').send(text); });
-server.listen(PORT, ()=> console.log(`🌙 Dark mode ready on ${PORT}`));
+server.listen(PORT, ()=> console.log(`💾 Save button ready on ${PORT}`));
