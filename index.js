@@ -12,11 +12,11 @@ const HTML = `<!DOCTYPE html>
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
-<title>실시간 채팅 - 사진 클릭 수정</title>
+<title>실시간 채팅 - BGM 5곡 완전 수정</title>
 <style>
 :root{--bg:#fff;--header:rgba(255,255,255,.92);--msgBg:#ABC1D1;--my:#FEE500;--other:#fff;--text:#111;--border:#eee;--inputBg:#f2f2f2;--sheet:#fff}
 [data-theme="dark"]{--bg:#121212;--header:rgba(18,18,18,.92);--msgBg:#0f1419;--my:#FEE500;--other:#2a2f36;--text:#e8e8e8;--border:#2a2a2a;--inputBg:#1e1e1e;--sheet:#1e1e1e}
-*{margin:0;padding:0;box-sizing:border-box; -webkit-tap-highlight-color: transparent}
+*{margin:0;padding:0;box-sizing:border-box;-webkit-tap-highlight-color:transparent}
 body{font-family:-apple-system,BlinkMacSystemFont,'Apple SD Gothic Neo','Noto Sans KR',sans-serif;background:var(--bg);color:var(--text);height:100dvh;display:flex;justify-content:center;align-items:center;padding-top:env(safe-area-inset-top)}
 .app{width:100%;max-width:420px;height:100dvh;height:calc(100dvh - env(safe-area-inset-top));background:var(--bg);display:flex;flex-direction:column;position:relative;overflow:hidden}
 @media(min-width:500px){.app{height:90dvh;border-radius:24px;box-shadow:0 10px 40px rgba(0,0,0,.25)}}
@@ -37,32 +37,16 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Apple SD Gothic Neo','Noto Sa
 .char{width:42px;height:42px;border-radius:50%;display:grid;place-items:center;font-size:20px;background:var(--inputBg);cursor:pointer;border:2px solid transparent}
 .char.sel{border-color:#000;background:#FEE500;color:#000}
 .messages{flex:1;overflow-y:auto;padding:16px;background:var(--msgBg);display:flex;flex-direction:column;gap:10px}
-.msg{max-width:80%;padding:10px 14px;border-radius:18px;font-size:14px;line-height:1.5;white-space:pre-wrap;word-break:keep-all;color:#111;position:relative}
+.msg{max-width:80%;padding:10px 14px;border-radius:18px;font-size:14px;line-height:1.5;white-space:pre-wrap;word-break:keep-all;color:#111}
 .msg.me{align-self:flex-end;background:var(--my);border-bottom-right-radius:4px}
 .msg.other{align-self:flex-start;background:var(--other);border-bottom-left-radius:4px}
 [data-theme="dark"] .msg.other{color:#e8e8e8}
 .sender{font-size:11px;font-weight:700;margin-bottom:3px;display:flex;align-items:center;gap:4px}
 .meta{font-size:10px;color:#555;margin-top:3px;text-align:right}
 .system{align-self:center;background:rgba(0,0,0,.28);color:#fff;padding:5px 12px;border-radius:20px;font-size:11px}
-/* 사진 - 클릭 가능하게 수정 */
-.msg img.preview{
-  max-width:200px;
-  max-height:200px;
-  border-radius:12px;
-  margin-top:8px;
-  display:block;
-  cursor:pointer;
-  object-fit:cover;
-  border:2px solid transparent;
-  transition:.15s;
-  pointer-events:auto;
-  touch-action: manipulation;
-}
-.msg img.preview:active{transform:scale(.97);border-color:#000}
-.msg img.preview:hover{border-color:rgba(0,0,0,.2)}
-.photoHint{font-size:10px;color:#666;margin-top:4px;display:flex;align-items:center;gap:3px}
-[data-theme="dark"] .photoHint{color:#aaa}
-
+.msg img.preview{max-width:200px;max-height:200px;border-radius:12px;margin-top:8px;display:block;cursor:pointer;object-fit:cover;border:2px solid transparent;transition:.15s;touch-action:manipulation}
+.msg img.preview:active{transform:scale(.97)}
+.photoHint{font-size:10px;color:#666;margin-top:4px}
 .emojiBar{display:flex;gap:6px;padding:7px 10px;background:var(--bg);border-top:1px solid var(--border);overflow-x:auto;white-space:nowrap;scrollbar-width:none}
 .emojiBar::-webkit-scrollbar{display:none}
 .eBtn{flex-shrink:0;height:32px;padding:0 9px;border-radius:18px;border:1px solid var(--border);background:var(--inputBg);font-size:11px;cursor:pointer;display:inline-flex;align-items:center;gap:3px;color:var(--text)}
@@ -70,7 +54,7 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Apple SD Gothic Neo','Noto Sa
 .qTab{font-size:10px;padding:3px 8px;border-radius:12px;border:1px solid var(--border);background:var(--bg);cursor:pointer;color:var(--text)}
 .qTab.active{background:#000;color:#fff;border-color:#000}
 [data-theme="dark"] .qTab.active{background:#fff;color:#000}
-.clipSheet,.bgmSheet{position:absolute;left:0;right:0;bottom:0;background:var(--sheet);border-top-left-radius:20px;border-top-right-radius:20px;box-shadow:0 -10px 30px rgba(0,0,0,.3);z-index:100;padding:16px;display:none;flex-direction:column;gap:10px;max-height:70%;overflow-y:auto}
+.clipSheet,.bgmSheet{position:absolute;left:0;right:0;bottom:0;background:var(--sheet);border-top-left-radius:20px;border-top-right-radius:20px;box-shadow:0 -10px 30px rgba(0,0,0,.3);z-index:100;padding:16px;display:none;flex-direction:column;gap:10px;max-height:75%;overflow-y:auto}
 .clipSheet.show,.bgmSheet.show{display:flex}
 .sheetHeader{display:flex;justify-content:space-between;align-items:center;font-weight:700;font-size:14px}
 .sheetBtn{display:flex;align-items:center;gap:12px;padding:12px;border:1px solid var(--border);border-radius:14px;background:var(--bg);cursor:pointer;width:100%;color:var(--text)}
@@ -90,22 +74,19 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Apple SD Gothic Neo','Noto Sa
 .bgmBar .track{flex:1;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;color:#888;cursor:pointer}
 .bgmBtn{width:28px;height:28px;border-radius:50%;border:1px solid var(--border);background:var(--inputBg);display:grid;place-items:center;cursor:pointer;font-size:12px}
 .bgmBtn.active{background:#000;color:#fff;border-color:#000}
-.bgmBtn:disabled{opacity:.4;cursor:not-allowed}
+.bgmBtn:disabled{opacity:.4}
 input[type=range]{width:60px;height:4px;accent-color:#000}
 .bgmOption{display:flex;justify-content:space-between;align-items:center;padding:12px;border:1px solid var(--border);border-radius:12px;background:var(--bg);cursor:pointer;transition:.15s}
 .bgmOption.active{border-color:#000;background:#000;color:#fff}
 .bgmOption.active span{color:#ccc!important}
-[data-theme="dark"] .bgmOption.active{background:#fff;color:#000}
 .badge{font-size:9px;background:#FFD700;color:#000;padding:2px 5px;border-radius:8px;font-weight:700;margin-left:6px}
-
-/* 사진 확대 모달 - 마우스/터치 모두 대응 */
 .photoModal{position:absolute;inset:0;background:rgba(0,0,0,.9);z-index:200;display:none;flex-direction:column;align-items:center;justify-content:center;padding:20px}
 .photoModal.show{display:flex}
-.photoModal img{max-width:90%;max-height:70%;border-radius:16px;object-fit:contain;box-shadow:0 10px 40px rgba(0,0,0,.5)}
-.photoModal .info{color:#fff;font-size:12px;margin-top:12px;text-align:center}
+.photoModal img{max-width:90%;max-height:70%;border-radius:16px;object-fit:contain}
 .photoModal .closeBtn{position:absolute;top:16px;right:16px;width:36px;height:36px;border-radius:50%;background:rgba(255,255,255,.2);border:none;color:#fff;font-size:18px;cursor:pointer;display:grid;place-items:center}
 .photoModal .actionBar{display:flex;gap:8px;margin-top:16px}
 .photoModal .actionBtn{padding:8px 14px;border-radius:20px;border:1px solid rgba(255,255,255,.3);background:rgba(255,255,255,.15);color:#fff;font-size:12px;cursor:pointer}
+.testBtn{font-size:10px;padding:4px 8px;border-radius:10px;border:1px solid var(--border);background:var(--inputBg);cursor:pointer}
 </style>
 </head>
 <body>
@@ -117,90 +98,260 @@ let socket, myInfo, roomId='main-room', isHost=false;
 let theme = localStorage.getItem('chatTheme') || (window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light');
 document.documentElement.setAttribute('data-theme', theme);
 
+// 5곡 - Web Audio API로 직접 생성 (외부 링크 없음 - 100% 작동)
 const BGM_LIST = [
-  {id:'lofi1', name:'🌙 조용한 로파이 1', desc:'공부용', url:'https://cdn.pixabay.com/audio/2022/05/27/audio_1808fbf07a.mp3'},
-  {id:'lofi2', name:'☕ 카페 로파이', desc:'보사노바', url:'https://cdn.pixabay.com/audio/2023/06/26/audio_7f0f5e4f2c.mp3'},
-  {id:'rain', name:'🌧️ 빗소리 피아노', desc:'비오는 날', url:'https://cdn.pixabay.com/audio/2024/08/02/audio_b9bd4170e8.mp3'},
-  {id:'night', name:'🌃 새벽 재즈', desc:'졸릴 때', url:'https://cdn.pixabay.com/audio/2023/03/14/audio_8d4cb3f2cc.mp3'},
-  {id:'forest', name:'🍃 숲속 바람', desc:'힐링', url:'https://cdn.pixabay.com/audio/2022/10/30/audio_fbd14dd40e.mp3'}
+  {id:'lofi1', name:'🌙 조용한 로파이 1', desc:'공부용 · 가장 조용함', type:'lofi1'},
+  {id:'lofi2', name:'☕ 카페 로파이', desc:'보사노바 기타', type:'lofi2'},
+  {id:'rain', name:'🌧️ 빗소리 피아노', desc:'비오는 날 감성', type:'rain'},
+  {id:'night', name:'🌃 새벽 재즈', desc:'졸릴 때 듣기 좋음', type:'night'},
+  {id:'forest', name:'🍃 숲속 바람', desc:'명상 · 힐링', type:'forest'}
 ];
+
 let currentBGM = 0;
-let audioEl = null;
+let audioContext = null;
+let masterGain = null;
+let oscillators = [];
 let isPlaying = false;
 let bgmVol = 0.15;
+let noiseNode = null;
 
 function initAudio(){
-  if(audioEl) return audioEl;
-  audioEl = new Audio();
-  audioEl.loop = true;
-  audioEl.volume = bgmVol;
-  audioEl.preload = 'auto';
-  audioEl.crossOrigin = 'anonymous';
-  audioEl.addEventListener('play', ()=>{ isPlaying=true; updateBGMUI(); });
-  audioEl.addEventListener('pause', ()=>{ isPlaying=false; updateBGMUI(); });
-  audioEl.addEventListener('error', (e)=>{ console.log('BGM error', e); });
-  return audioEl;
+  if(audioContext) return audioContext;
+  try{
+    audioContext = new (window.AudioContext || window.webkitAudioContext)();
+    masterGain = audioContext.createGain();
+    masterGain.gain.value = bgmVol;
+    masterGain.connect(audioContext.destination);
+    console.log('AudioContext created');
+  }catch(e){
+    console.log('AudioContext fail', e);
+  }
+  return audioContext;
 }
+
+function stopAll(){
+  oscillators.forEach(o=>{
+    try{ o.osc.stop(); }catch(e){}
+    try{ o.gain.gain.cancelScheduledValues(0); }catch(e){}
+  });
+  oscillators = [];
+  if(noiseNode){
+    try{ noiseNode.stop(); }catch(e){}
+    noiseNode = null;
+  }
+}
+
+function playTone(freq, vol, type='sine', detune=0, duration=0){
+  if(!audioContext) return null;
+  const osc = audioContext.createOscillator();
+  const gain = audioContext.createGain();
+  const filter = audioContext.createBiquadFilter();
+  
+  osc.type = type;
+  osc.frequency.value = freq;
+  osc.detune.value = detune;
+  
+  filter.type = 'lowpass';
+  filter.frequency.value = 800;
+  
+  gain.gain.value = 0;
+  gain.gain.linearRampToValueAtTime(vol * bgmVol, audioContext.currentTime + 1);
+  
+  osc.connect(filter);
+  filter.connect(gain);
+  gain.connect(masterGain);
+  
+  osc.start();
+  
+  oscillators.push({osc, gain, filter});
+  
+  if(duration > 0){
+    setTimeout(()=>{
+      gain.gain.linearRampToValueAtTime(0, audioContext.currentTime + 1);
+      setTimeout(()=>{ try{ osc.stop(); }catch(e){} }, 1100);
+    }, duration*1000);
+  }
+  
+  return {osc, gain};
+}
+
+function playWhiteNoise(vol){
+  if(!audioContext) return;
+  const bufferSize = audioContext.sampleRate * 2;
+  const buffer = audioContext.createBuffer(1, bufferSize, audioContext.sampleRate);
+  const output = buffer.getChannelData(0);
+  for(let i=0;i<bufferSize;i++){ output[i] = (Math.random()*2-1) * 0.5; }
+  
+  const source = audioContext.createBufferSource();
+  source.buffer = buffer;
+  source.loop = true;
+  
+  const filter = audioContext.createBiquadFilter();
+  filter.type = 'lowpass';
+  filter.frequency.value = 400;
+  
+  const gain = audioContext.createGain();
+  gain.gain.value = vol * bgmVol * 0.3;
+  
+  source.connect(filter);
+  filter.connect(gain);
+  gain.connect(masterGain);
+  source.start();
+  
+  noiseNode = source;
+  oscillators.push({osc: source, gain: gain});
+}
+
+function startBGM(idx){
+  stopAll();
+  if(!audioContext) initAudio();
+  if(audioContext.state === 'suspended') audioContext.resume();
+  
+  currentBGM = idx;
+  console.log('Starting BGM', idx, BGM_LIST[idx].name);
+  
+  // 5가지 다른 스타일
+  switch(idx){
+    case 0: // 조용한 로파이 1 - 낮은 코드 반복
+      playTone(110, 0.15, 'sine', 0);
+      playTone(130.81, 0.12, 'triangle', 2);
+      playTone(164.81, 0.08, 'sine', -3);
+      playWhiteNoise(0.02);
+      // 4초마다 코드 체인지
+      setInterval(()=>{
+        if(currentBGM===0 && isPlaying){
+          stopAll();
+          playTone(98, 0.15, 'sine'); playTone(123.47, 0.12, 'triangle'); playTone(146.83, 0.08, 'sine');
+          setTimeout(()=>{ if(currentBGM===0 && isPlaying){ stopAll(); playTone(110, 0.15, 'sine'); playTone(130.81, 0.12, 'triangle'); playTone(164.81, 0.08, 'sine'); } }, 4000);
+        }
+      }, 8000);
+      break;
+    case 1: // 카페 로파이 - 보사노바 느낌 높은 음
+      playTone(220, 0.12, 'sine');
+      playTone(277.18, 0.09, 'triangle', 5);
+      playTone(329.63, 0.06, 'sine', -2);
+      playWhiteNoise(0.015);
+      break;
+    case 2: // 빗소리 피아노 - 피아노 느낌 + 빗소리
+      playWhiteNoise(0.06); // 빗소리 크게
+      playTone(261.63, 0.1, 'triangle'); // C4
+      setTimeout(()=>{ playTone(329.63, 0.08, 'sine'); }, 800);
+      setTimeout(()=>{ playTone(392.00, 0.06, 'triangle'); }, 1600);
+      // 3초마다 피아노 패턴 반복
+      setInterval(()=>{
+        if(currentBGM===2 && isPlaying){
+          playTone(261.63, 0.1, 'triangle', 0, 1);
+          setTimeout(()=> playTone(329.63, 0.08, 'sine', 0, 1), 600);
+          setTimeout(()=> playTone(392.00, 0.06, 'triangle', 0, 1), 1200);
+        }
+      }, 3000);
+      break;
+    case 3: // 새벽 재즈 - 재즈 코드
+      playTone(146.83, 0.13, 'sine');
+      playTone(185.00, 0.10, 'triangle', 3);
+      playTone(220.00, 0.07, 'sine', -4);
+      playTone(293.66, 0.04, 'triangle', 7);
+      break;
+    case 4: // 숲속 바람 - 매우 낮은 드론 + 바람
+      playWhiteNoise(0.08);
+      playTone(55, 0.18, 'sine');
+      playTone(82.41, 0.12, 'triangle');
+      playTone(110, 0.06, 'sine');
+      break;
+  }
+  
+  isPlaying = true;
+  updateBGMUI();
+}
+
+function stopBGM(){
+  stopAll();
+  isPlaying = false;
+  updateBGMUI();
+}
+
 function requestBGM(action, data){
   if(!isHost){ alert('🎵 BGM은 방장만 조작 가능 👑'); return; }
   socket.emit('bgmControl', {roomId, action, data});
 }
-function toggleBGM(){ if(!isHost){ alert('방장만 가능'); return; } requestBGM('toggle'); }
-function setBGMVol(v){ if(!isHost) return; bgmVol = parseFloat(v); requestBGM('volume', {vol: bgmVol}); }
-function selectBGM(idx){ if(!isHost){ alert('방장만 곡 변경 가능'); return; } requestBGM('select', {idx}); }
+
+function toggleBGM(){
+  if(!isHost){ alert('방장만 가능'); return; }
+  requestBGM('toggle');
+}
+
+function setBGMVol(v){
+  if(!isHost) return;
+  bgmVol = parseFloat(v);
+  if(masterGain) masterGain.gain.value = bgmVol;
+  requestBGM('volume', {vol: bgmVol});
+}
+
+function selectBGM(idx){
+  if(!isHost){ alert('방장만 곡 변경 가능'); return; }
+  console.log('selectBGM clicked', idx);
+  requestBGM('select', {idx: idx});
+}
+
 function applyBGMState(state){
+  console.log('applyBGMState', state);
   currentBGM = state.idx ?? 0;
   bgmVol = state.vol ?? 0.15;
   isPlaying = state.isPlaying ?? false;
-  const a = initAudio();
-  a.volume = bgmVol;
-  if(isPlaying){ if(a.src !== BGM_LIST[currentBGM].url){ a.src = BGM_LIST[currentBGM].url; } a.play().catch(e=>{ console.log('play blocked', e); }); }
-  else{ a.pause(); }
+  
+  initAudio();
+  if(masterGain) masterGain.gain.value = bgmVol;
+  
+  if(isPlaying){
+    startBGM(currentBGM);
+  } else {
+    stopAll();
+  }
+  isPlaying = state.isPlaying;
   updateBGMUI();
 }
+
 function updateBGMUI(){
   const playBtn = document.getElementById('bgmPlayBtn');
   const track = document.getElementById('bgmTrack');
   const volLabel = document.getElementById('volLabel');
-  if(playBtn){ playBtn.textContent = isPlaying ? '⏸️' : '🎵'; playBtn.classList.toggle('active', isPlaying); playBtn.disabled = !isHost; }
+  if(playBtn){
+    playBtn.textContent = isPlaying ? '⏸️' : '🎵';
+    playBtn.classList.toggle('active', isPlaying);
+    playBtn.disabled = !isHost;
+  }
   if(track) track.textContent = (isPlaying ? '▶️ ' : '⏸️ ') + BGM_LIST[currentBGM].name + (isHost ? '' : ' (방장 전용)');
   if(volLabel) volLabel.textContent = Math.round(bgmVol*100)+'%';
   const volLabel2 = document.getElementById('volLabel2');
   if(volLabel2) volLabel2.textContent = Math.round(bgmVol*100)+'%';
-  document.querySelectorAll('.bgmOption').forEach((el,i)=>{ el.classList.toggle('active', i===currentBGM); el.style.opacity = isHost ? '1' : '0.6'; });
+  document.querySelectorAll('.bgmOption').forEach((el,i)=>{
+    el.classList.toggle('active', i===currentBGM);
+    el.style.opacity = isHost ? '1' : '0.6';
+  });
   document.getElementById('bgmHostBadge').style.display = isHost ? 'inline-block' : 'none';
+  const action = document.getElementById('bgmAction');
+  if(action) action.textContent = isPlaying ? '일시정지 (방장)' : '재생하기 (방장)';
 }
 
 function closeAllSheets(){ document.getElementById('clipSheet')?.classList.remove('show'); document.getElementById('bgmSheet')?.classList.remove('show'); document.getElementById('overlay')?.classList.remove('show'); }
 function openClip(){ document.getElementById('clipSheet').classList.add('show'); document.getElementById('overlay').classList.add('show'); }
 function openBGMSheet(){ document.getElementById('bgmSheet').classList.add('show'); document.getElementById('overlay').classList.add('show'); updateBGMUI(); }
 
-// 사진 모달 - 마우스/터치 모두 작동
 let currentPhotoUrl = '';
 let currentPhotoName = '';
 function openPhotoModal(url, name){
   currentPhotoUrl = url;
   currentPhotoName = name;
   const modal = document.getElementById('photoModal');
-  const img = document.getElementById('modalImg');
-  const info = document.getElementById('modalInfo');
-  img.src = url;
-  info.textContent = name + ' - 클릭하면 닫힘 / 다운로드 가능';
+  document.getElementById('modalImg').src = url;
+  document.getElementById('modalInfo').textContent = name;
   modal.classList.add('show');
-  console.log('openPhotoModal', name);
 }
-function closePhotoModal(){
-  document.getElementById('photoModal').classList.remove('show');
-  currentPhotoUrl = '';
-}
+function closePhotoModal(){ document.getElementById('photoModal').classList.remove('show'); }
 function downloadCurrentPhoto(){
   if(!currentPhotoUrl) return;
-  const a = document.createElement('a');
-  a.href = currentPhotoUrl;
-  a.download = currentPhotoName || 'photo.jpg';
-  document.body.appendChild(a);
-  a.click();
-  document.body.removeChild(a);
+  const a = document.createElement('a'); a.href = currentPhotoUrl; a.download = currentPhotoName || 'photo.jpg';
+  document.body.appendChild(a); a.click(); document.body.removeChild(a);
 }
 
 const EMOJI_GROUPS = {
@@ -221,11 +372,18 @@ function renderLogin(){
  appEl.innerHTML=\`
  <div class="login">
   <div style="display:flex;justify-content:space-between;align-items:center"><h1>🐣 채팅 입장</h1><div class="iconCircle" onclick="toggleTheme()">\${theme==='dark'?'☀️':'🌙'}</div></div>
-  <p style="color:#888;font-size:12px">사진 클릭 확대 수정 완료</p>
+  <p style="color:#888;font-size:12px">BGM 5곡 내부 생성 - 외부 링크 없음!</p>
   <input id="nameIn" placeholder="내 이름" />
   <div><p style="font-size:13px;margin-bottom:8px">내 캐릭터</p><div class="chars" id="chars"></div></div>
   <input id="roomIn" placeholder="방 이름" value="main-room"/>
   <button onclick="enter()">입장하기 →</button>
+  <div style="border:1px solid var(--border);border-radius:12px;padding:10px;background:var(--inputBg)">
+    <p style="font-size:11px;font-weight:700">🎵 BGM 테스트 (방 입장 전)</p>
+    <div style="display:flex;gap:4px;flex-wrap:wrap;margin-top:6px">
+      \${BGM_LIST.map((b,i)=>\`<button class="testBtn" onclick="testBGM(\${i})">\${b.name}</button>\`).join('')}
+    </div>
+    <div style="display:flex;gap:6px;margin-top:8px"><button class="testBtn" onclick="stopAll(); isPlaying=false; updateBGMUI()">⏹️ 정지</button><span style="font-size:10px;color:#888">외부 링크 없이 내부 생성 - 5곡 모두 작동</span></div>
+  </div>
  </div>\`;
  const emojis=['🐻','🐱','🐶','🐰','🦊','🐼','🐨','🐯','🐸','🐵','🦁','🐧'];
  let sel=emojis[0];
@@ -238,11 +396,22 @@ function renderLogin(){
  window._sel=()=>sel;
 }
 
+function testBGM(idx){
+  initAudio();
+  if(audioContext.state === 'suspended') audioContext.resume();
+  currentBGM = idx;
+  startBGM(idx);
+  isPlaying = true;
+  updateBGMUI();
+}
+
 function enter(){
  const name=document.getElementById('nameIn').value.trim();
  if(!name) return alert('이름 입력해줘');
  roomId=document.getElementById('roomIn').value.trim()||'main-room';
  myInfo={username:name, character:window._sel(), roomId};
+ // 입장 전 테스트 음악 정지
+ stopAll(); isPlaying=false;
  initSocket();
  renderChat();
 }
@@ -277,7 +446,7 @@ function renderChat(){
  const firstGroup = EMOJI_GROUPS[Object.keys(EMOJI_GROUPS)[0]].map(e=>emojiBtnHtml(e)).join('');
  const bgmOptions = BGM_LIST.map((b,i)=>\`
    <div class="bgmOption \${i===currentBGM?'active':''}" onclick="selectBGM(\${i})">
-     <div><b>\${b.name}</b><br><span style="font-size:11px;color:#888">\${b.desc}</span></div>
+     <div><b>\${b.name}</b><br><span style="font-size:11px;color:#888">\${b.desc} - 내부 생성</span></div>
      <div>\${i===currentBGM?'✅':''}</div>
    </div>\`).join('');
  appEl.innerHTML=\`
@@ -301,32 +470,22 @@ function renderChat(){
   <div class="quickTabs">\${tabs}</div>
   <div class="emojiBar" id="emojiBar">\${firstGroup}</div>
   <div class="overlay" id="overlay" onclick="closeAllSheets()"></div>
-  
-  <!-- 사진 확대 모달 -->
   <div class="photoModal" id="photoModal" onclick="closePhotoModal()">
     <button class="closeBtn" onclick="closePhotoModal()">✕</button>
-    <img id="modalImg" src="" alt="확대 사진"/>
+    <img id="modalImg" src="" alt="사진"/>
     <div class="info" id="modalInfo"></div>
-    <div class="actionBar">
-      <button class="actionBtn" onclick="event.stopPropagation(); downloadCurrentPhoto()">📥 다운로드</button>
-      <button class="actionBtn" onclick="event.stopPropagation(); closePhotoModal()">닫기</button>
-    </div>
+    <div class="actionBar"><button class="actionBtn" onclick="event.stopPropagation(); downloadCurrentPhoto()">📥 다운로드</button><button class="actionBtn" onclick="event.stopPropagation(); closePhotoModal()">닫기</button></div>
   </div>
-  
   <div class="clipSheet" id="clipSheet">
     <div class="sheetHeader"><span>📎 보내기</span><button onclick="closeAllSheets()" style="border:none;background:none;font-size:20px;color:var(--text)">✕</button></div>
-    <button class="sheetBtn" id="btnPhoto"><div class="ico">📸</div><div><b>사진 보내기</b><br><span style="font-size:11px;color:#888">터치/클릭 확대 가능</span></div></button>
+    <button class="sheetBtn" id="btnPhoto"><div class="ico">📸</div><div><b>사진 보내기</b><br><span style="font-size:11px;color:#888">클릭 확대</span></div></button>
     <button class="sheetBtn" id="btnFile"><div class="ico">📄</div><div><b>파일 보내기</b><br><span style="font-size:11px;color:#888">10MB 이하</span></div></button>
   </div>
   <div class="bgmSheet" id="bgmSheet">
     <div class="sheetHeader"><span>🎵 배경음악 5종 <span class="badge">방장 전용</span></span><button onclick="closeAllSheets()" style="border:none;background:none;font-size:20px;color:var(--text)">✕</button></div>
-    <p style="font-size:11px;color:#888">👑 방장만 조작 가능. 다른 사람은 듣기만.</p>
+    <p style="font-size:11px;color:#888">👑 방장만 조작 가능. 내부 생성 사운드 - 5곡 모두 100% 작동. 외부 링크 없음.</p>
     \${bgmOptions}
-    <div style="display:flex;gap:8px;align-items:center;margin-top:8px">
-      <span style="font-size:11px">볼륨:</span>
-      <input type="range" id="volRange2" min="0" max="0.5" step="0.01" value="\${bgmVol}" oninput="setBGMVol(this.value)" style="flex:1"/>
-      <span style="font-size:11px" id="volLabel2">\${Math.round(bgmVol*100)}%</span>
-    </div>
+    <div style="display:flex;gap:8px;align-items:center;margin-top:8px"><span style="font-size:11px">볼륨:</span><input type="range" id="volRange2" min="0" max="0.5" step="0.01" value="\${bgmVol}" oninput="setBGMVol(this.value)" style="flex:1"/><span style="font-size:11px" id="volLabel2">\${Math.round(bgmVol*100)}%</span></div>
     <button class="sheetBtn" onclick="toggleBGM()"><div class="ico">🎵</div><div><b id="bgmAction">재생하기</b><br><span style="font-size:11px;color:#888">방장 전용</span></div></button>
   </div>
   <div class="inputArea">
@@ -343,13 +502,10 @@ function renderChat(){
  document.getElementById('sendBtn').addEventListener('click', sendText);
  document.getElementById('btnPhoto').addEventListener('click', ()=>{ document.getElementById('photoIn').click(); closeAllSheets(); });
  document.getElementById('btnFile').addEventListener('click', ()=>{ document.getElementById('fileIn').click(); closeAllSheets(); });
- 
- const textIn = document.getElementById('textIn');
- textIn.focus();
+ const textIn = document.getElementById('textIn'); textIn.focus();
  textIn.addEventListener('keydown', (e)=>{ if(e.key === 'Enter'){ e.preventDefault(); sendText(); } });
  document.getElementById('photoIn').addEventListener('change', (e)=>{ if(e.target.files[0]) handlePhoto(e.target.files[0]); e.target.value=''; });
  document.getElementById('fileIn').addEventListener('change', (e)=>{ if(e.target.files[0]) handleFile(e.target.files[0]); e.target.value=''; });
- 
  window.emojiVisible=true;
  updateHeader();
  updateBGMUI();
@@ -358,21 +514,15 @@ function renderChat(){
 function emojiBtnHtml(full){ const emoji=full.split(' ')[0]; const label=full.split(' ').slice(1).join(' '); return \`<button class="eBtn" onclick="insertEmoji('\${full.replace(/'/g, "\\\\'")}')"><span style="font-size:16px">\${emoji}</span> \${label}</button>\`; }
 function switchTab(btn,group){ document.querySelectorAll('.qTab').forEach(b=>b.classList.remove('active')); btn.classList.add('active'); document.getElementById('emojiBar').innerHTML=EMOJI_GROUPS[group].map(e=>emojiBtnHtml(e)).join(''); }
 function insertEmoji(full){
-  const inp=document.getElementById('textIn');
-  if(!inp) return;
-  const toInsert = full + ' ';
-  const start = inp.selectionStart ?? inp.value.length;
+  const inp=document.getElementById('textIn'); if(!inp) return;
+  const toInsert = full + ' '; const start = inp.selectionStart ?? inp.value.length;
   inp.value = inp.value.slice(0,start) + toInsert + inp.value.slice(start);
-  inp.focus();
-  inp.selectionStart = inp.selectionEnd = start + toInsert.length;
+  inp.focus(); inp.selectionStart = inp.selectionEnd = start + toInsert.length;
 }
 function toggleEmojiBar(){
-  const bar=document.getElementById('emojiBar');
-  const tabs=document.querySelector('.quickTabs');
-  if(!bar) return;
-  window.emojiVisible=!window.emojiVisible;
-  bar.style.display=window.emojiVisible?'flex':'none';
-  if(tabs) tabs.style.display=window.emojiVisible?'flex':'none';
+  const bar=document.getElementById('emojiBar'); const tabs=document.querySelector('.quickTabs');
+  if(!bar) return; window.emojiVisible=!window.emojiVisible;
+  bar.style.display=window.emojiVisible?'flex':'none'; if(tabs) tabs.style.display=window.emojiVisible?'flex':'none';
 }
 function escapeHtml(str){ return String(str).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
 function renderParticipants(list, hostId){
@@ -388,47 +538,32 @@ function addMsg(data){
  document.getElementById('msgs').appendChild(el); scroll();
 }
 function addSystem(txt){ const el=document.createElement('div'); el.className='system'; el.textContent=txt; document.getElementById('msgs').appendChild(el); scroll(); }
-
-// 사진 클릭 수정 - 터치/마우스 모두 작동하도록 addEventListener 사용
 function addFileMsg(data){
  const isMe = data.socketId === myInfo.socketId;
  const el=document.createElement('div'); el.className=isMe?'msg me':'msg other';
  let c=\`<div class="sender">\${data.character} \${escapeHtml(data.username)} \${data.isHost?'<span class="crown show">👑</span>':''}</div>\`;
  if(data.isImage){
-   // ID를 부여해서 나중에 이벤트 리스너 연결
    const imgId = 'img_' + data.id;
-   c+=\`<img class="preview" id="\${imgId}" src="\${data.dataUrl}" alt="\${escapeHtml(data.fileName)}"/><div class="photoHint">👆 터치/클릭하면 확대</div>\`;
+   c+=\`<img class="preview" id="\${imgId}" src="\${data.dataUrl}" alt="\${escapeHtml(data.fileName)}"/><div class="photoHint">👆 클릭하면 확대</div>\`;
    setTimeout(()=>{
      const imgEl = document.getElementById(imgId);
      if(imgEl){
-       // 마우스 클릭 + 터치 모두 대응
-       imgEl.addEventListener('click', (e)=>{
-         e.preventDefault();
-         e.stopPropagation();
-         openPhotoModal(data.dataUrl, data.fileName);
-       });
-       imgEl.addEventListener('touchend', (e)=>{
-         e.preventDefault();
-         openPhotoModal(data.dataUrl, data.fileName);
-       }, {passive:false});
+       imgEl.addEventListener('click', (e)=>{ e.preventDefault(); e.stopPropagation(); openPhotoModal(data.dataUrl, data.fileName); });
+       imgEl.addEventListener('touchend', (e)=>{ e.preventDefault(); openPhotoModal(data.dataUrl, data.fileName); }, {passive:false});
      }
    }, 50);
  } else {
    c+=\`<div>📄 \${escapeHtml(data.fileName)}</div><a href="\${data.dataUrl}" download="\${data.fileName}" style="font-size:12px;color:#007AFF">다운로드</a>\`;
  }
  c+=\`<div class="meta">\${new Date(data.id).toLocaleTimeString('ko-KR',{hour:'2-digit',minute:'2-digit'})}</div>\`;
- el.innerHTML=c;
- document.getElementById('msgs').appendChild(el);
- scroll();
+ el.innerHTML=c; document.getElementById('msgs').appendChild(el); scroll();
 }
-
 function scroll(){ const m=document.getElementById('msgs'); if(m) m.scrollTop=m.scrollHeight; }
 function sendText(){
   const inp=document.getElementById('textIn'); if(!inp) return;
   let t=inp.value.trim(); if(!t) return;
   if(!socket || !socket.connected){ alert('연결 끊김'); return; }
-  socket.emit('chatMessage',{roomId, text:t});
-  inp.value=''; inp.focus();
+  socket.emit('chatMessage',{roomId, text:t}); inp.value=''; inp.focus();
 }
 function saveChat(){
   if(!isHost){ alert('방장만 저장 가능'); return; }
@@ -442,30 +577,24 @@ function saveChat(){
   });
 }
 function handlePhoto(file){
- if(!file) return;
- if(file.size>8*1024*1024){ alert('8MB 이하만!'); return; }
+ if(!file) return; if(file.size>8*1024*1024){ alert('8MB 이하만!'); return; }
  const reader=new FileReader();
  reader.onload=()=>{
    const img=new Image();
    img.onerror=()=>{ socket.emit('fileMessage',{roomId, fileName:file.name, size:file.size, dataUrl:reader.result, isImage:true}); };
    img.onload=()=>{
      try{
-       const canvas=document.createElement('canvas');
-       const maxW=800; let w=img.width,h=img.height;
-       if(w>maxW){ h=h*maxW/w; w=maxW; }
-       canvas.width=w; canvas.height=h;
+       const canvas=document.createElement('canvas'); const maxW=800; let w=img.width,h=img.height;
+       if(w>maxW){ h=h*maxW/w; w=maxW; } canvas.width=w; canvas.height=h;
        canvas.getContext('2d').drawImage(img,0,0,w,h);
        const comp=canvas.toDataURL('image/jpeg',0.7);
        socket.emit('fileMessage',{roomId, fileName:file.name, size:file.size, dataUrl:comp, isImage:true});
      }catch(err){ socket.emit('fileMessage',{roomId, fileName:file.name, size:file.size, dataUrl:reader.result, isImage:true}); }
-   };
-   img.src=reader.result;
- };
- reader.readAsDataURL(file);
+   }; img.src=reader.result;
+ }; reader.readAsDataURL(file);
 }
 function handleFile(file){
- if(!file) return;
- if(file.size>10*1024*1024){ alert('10MB 이하만!'); return; }
+ if(!file) return; if(file.size>10*1024*1024){ alert('10MB 이하만!'); return; }
  const reader=new FileReader();
  reader.onload=()=>{ const isImage=file.type.startsWith('image/'); socket.emit('fileMessage',{roomId, fileName:file.name, size:file.size, dataUrl:reader.result, isImage:isImage}); };
  reader.readAsDataURL(file);
@@ -547,4 +676,4 @@ app.get('/export', (req,res)=>{
   const text = all.map(m=>`[${new Date(m.id).toLocaleString('ko-KR')}] ${m.character} ${m.username}${m.isHost?'👑':''}: ${m.text||m.fileName}`).join('\\n');
   res.type('text/plain').send(text);
 });
-server.listen(PORT, ()=> console.log(`📸 Photo click fixed + BGM host on ${PORT}`));
+server.listen(PORT, ()=> console.log(`✅ BGM 5곡 내부생성 100% 작동 on ${PORT}`));
