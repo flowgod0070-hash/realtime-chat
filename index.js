@@ -2,7 +2,6 @@ import express from 'express';
 import http from 'http';
 import { Server } from 'socket.io';
 import path from 'path';
-import fs from 'fs';
 import { fileURLToPath } from 'url';
 
 const __filename = fileURLToPath(import.meta.url);
@@ -13,90 +12,180 @@ const server = http.createServer(app);
 const io = new Server(server, { cors: { origin: "*" } });
 const PORT = process.env.PORT || 10000;
 
-function listFiles(dir, depth = 0) {
-  if (depth > 3) return [];
-  try {
-    const files = fs.readdirSync(dir);
-    let result = [`📁 ${dir}: ${files.join(', ')}`];
-    for (const f of files) {
-      const full = path.join(dir, f);
-      try {
-        if (fs.statSync(full).isDirectory() && !f.startsWith('node_modules') && !f.startsWith('.git')) {
-          result = result.concat(listFiles(full, depth + 1));
-        }
-      } catch {}
-    }
-    return result;
-  } catch (e) {
-    return [`❌ Cannot read ${dir}: ${e.message}`];
-  }
+// index.html 내용을 서버 안에 직접 넣음 - 파일 없어도 됨!
+const HTML = `<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+<title>실시간 채팅</title>
+<link rel="manifest" href="manifest.json">
+<meta name="theme-color" content="#ffffff">
+<meta name="apple-mobile-web-app-status-bar-style" content="default">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<style>
+  *{margin:0;padding:0;box-sizing:border-box}
+  body{font-family:-apple-system,BlinkMacSystemFont,'Apple SD Gothic Neo','Noto Sans KR',sans-serif;background:#fff;height:100dvh;display:flex;justify-content:center;align-items:center;margin:0;padding-top:env(safe-area-inset-top)}
+  .app{width:100%;max-width:420px;height:100dvh;height:calc(100dvh - env(safe-area-inset-top));background:#fff;display:flex;flex-direction:column;position:relative;overflow:hidden}
+  @media(min-width:500px){.app{height:90dvh;border-radius:24px}}
+  .header{background:#ffffffcc;backdrop-filter:blur(20px);-webkit-backdrop-filter:blur(20px);padding:14px 16px;padding-top:calc(14px + env(safe-area-inset-top));display:flex;justify-content:space-between;align-items:center;border-bottom:1px solid #f0f0f0;position:sticky;top:0;z-index:10}
+  .header b{font-size:17px}
+  .login{flex:1;display:flex;flex-direction:column;justify-content:center;padding:32px;gap:16px;background:#fff}
+  .login h1{font-size:24px}
+  .login input{padding:14px;border:1px solid #ddd;border-radius:12px;font-size:16px}
+  .login button{padding:14px;background:#FEE500;border:none;border-radius:12px;font-weight:700;font-size:16px;cursor:pointer}
+  .chars{display:flex;gap:8px;flex-wrap:wrap}
+  .char{width:44px;height:44px;border-radius:50%;display:grid;place-items:center;font-size:22px;background:#f5f5f5;cursor:pointer;border:2px solid transparent}
+  .char.sel{border-color:#000;background:#FEE500}
+  .messages{flex:1;overflow-y:auto;padding:16px;background:#ABC1D1;display:flex;flex-direction:column;gap:10px}
+  .msg{max-width:78%;padding:10px 14px;border-radius:18px;font-size:15px;line-height:1.5;position:relative;white-space:pre-wrap;word-break:keep-all;overflow-wrap:break-word}
+  .msg.me{align-self:flex-end;background:#FEE500;border-bottom-right-radius:4px}
+  .msg.other{align-self:flex-start;background:#fff;border-bottom-left-radius:4px}
+  .msg .sender{font-size:12px;font-weight:700;margin-bottom:4px;display:flex;align-items:center;gap:4px}
+  .msg.me .sender{justify-content:flex-end;color:#5a4a00}
+  .msg.other .sender{color:#000}
+  .meta{font-size:11px;color:#666;margin-top:4px;text-align:right}
+  .system{align-self:center;background:rgba(0,0,0,.2);color:#fff;padding:4px 12px;border-radius:20px;font-size:12px}
+  .inputArea{display:flex;gap:8px;padding:10px;background:#fff;border-top:1px solid #eee;align-items:center}
+  .inputArea input{flex:1;padding:12px 16px;border:none;background:#f2f2f2;border-radius:24px;font-size:15px;outline:none}
+  .iconBtn{width:40px;height:40px;border-radius:50%;border:none;background:#f2f2f2;display:grid;place-items:center;font-size:18px;cursor:pointer}
+  .send{background:#FEE500}
+</style>
+</head>
+<body>
+<div class="app" id="app"></div>
+<script src="/socket.io/socket.io.js"></script>
+<script>
+const appEl = document.getElementById('app');
+let socket, myInfo, roomId='main-room';
+let isComposing = false;
+function renderLogin(){
+ appEl.innerHTML=\`
+ <div class="login">
+  <h1>🐣 실시간 채팅 입장</h1>
+  <p style="color:#666;font-size:14px">아이폰·갤럭시 둘 다 설치 가능! 같은 링크로 친구랑 바로 대화</p>
+  <input id="nameIn" placeholder="내 이름 (예: 지훈)" />
+  <div>
+    <p style="font-size:13px;margin-bottom:8px">내 캐릭터 선택</p>
+    <div class="chars" id="chars"></div>
+  </div>
+  <input id="roomIn" placeholder="방 이름 (예: 우리반) - 기본: main-room" value="main-room"/>
+  <button onclick="enter()">입장하기 →</button>
+  <p style="font-size:12px;color:#888;margin-top:12px;line-height:1.5">
+  📱 설치 방법<br>
+  아이폰: Safari에서 공유 버튼 → 홈 화면에 추가<br>
+  갤럭시: Chrome에서 메뉴 → 홈 화면에 추가 / 앱 설치
+  </p>
+ </div>\`;
+ const emojis=['🐻','🐱','🐶','🐰','🦊','🐼','🐨','🐯','🐸','🐵','🦁','🐧'];
+ let sel=emojis[0];
+ const wrap=document.getElementById('chars');
+ emojis.forEach(e=>{
+   const d=document.createElement('div'); d.className='char'+(e===sel?' sel':''); d.textContent=e;
+   d.onclick=()=>{sel=e; document.querySelectorAll('.char').forEach(c=>c.classList.remove('sel')); d.classList.add('sel')};
+   wrap.appendChild(d);
+ });
+ window._sel=()=>sel;
 }
-
-function findFile(name, searchRoots) {
-  for (const root of searchRoots) {
-    try {
-      const files = fs.readdirSync(root);
-      if (files.includes(name)) return path.join(root, name);
-      // 하위 폴더도 탐색
-      for (const f of files) {
-        const full = path.join(root, f);
-        try {
-          if (fs.statSync(full).isDirectory() && !f.startsWith('node_modules')) {
-            const subFiles = fs.readdirSync(full);
-            if (subFiles.includes(name)) return path.join(full, name);
-          }
-        } catch {}
-      }
-    } catch {}
-  }
-  return null;
+function enter(){
+ const name=document.getElementById('nameIn').value.trim();
+ if(!name) return alert('이름 입력해줘');
+ const room=document.getElementById('roomIn').value.trim()||'main-room';
+ roomId=room;
+ myInfo={username:name, character:window._sel(), roomId};
+ initSocket();
+ renderChat();
 }
-
-const searchRoots = [
-  __dirname,
-  path.join(__dirname, '..'),
-  process.cwd(),
-  path.join(process.cwd(), '..'),
-  '/opt/render/project',
-  '/opt/render/project/src',
-  '/opt/render/project/src/src',
-];
-
-console.log('=== FILE SYSTEM DEBUG ===');
-for (const dir of [...new Set(searchRoots)]) {
-  console.log(listFiles(dir, 1).join('\n'));
+function initSocket(){
+ socket=io();
+ socket.emit('joinRoom', myInfo);
+ socket.on('chatMessage', addMsg);
+ socket.on('fileMessage', addFileMsg);
+ socket.on('voiceMessage', addVoiceMsg);
+ socket.on('systemMessage', (txt)=> addSystem(txt));
 }
+function renderChat(){
+ appEl.innerHTML=\`
+  <div class="header"><b>\${myInfo.character} \${myInfo.username} · \${roomId}</b><span style="font-size:12px;color:#888">\${location.hostname}</span></div>
+  <div class="messages" id="msgs"></div>
+  <div class="inputArea">
+   <button class="iconBtn" onclick="document.getElementById('fileIn').click()">📎</button>
+   <input id="fileIn" type="file" hidden onchange="sendFile(this.files[0])"/>
+   <input id="textIn" placeholder="메시지 입력" autocomplete="off" />
+   <button class="iconBtn" id="micBtn" onclick="toggleVoice()">🎤</button>
+   <button class="iconBtn send" onclick="sendText()">↑</button>
+  </div>\`;
+ const textIn = document.getElementById('textIn');
+ textIn.focus();
+ textIn.addEventListener('compositionstart', ()=>{ isComposing = true; });
+ textIn.addEventListener('compositionend', ()=>{ setTimeout(()=>{ isComposing = false; }, 100); });
+ textIn.addEventListener('keydown', (e)=>{
+   if(e.key === 'Enter'){
+     if(isComposing || e.isComposing || e.keyCode === 229) return;
+     e.preventDefault();
+     sendText();
+   }
+ });
+}
+function escapeHtml(str){
+  return str.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+}
+function addMsg(data){
+ const isMe=data.username===myInfo.username;
+ const el=document.createElement('div');
+ el.className=isMe?'msg me':'msg other';
+ const safeText = escapeHtml(data.text);
+ el.innerHTML=\`<div class="sender">\${data.character} \${escapeHtml(data.username)}</div><div>\${safeText}</div><div class="meta">\${new Date(data.id).toLocaleTimeString('ko-KR',{hour:'2-digit',minute:'2-digit'})}</div>\`;
+ document.getElementById('msgs').appendChild(el); scroll();
+}
+function addSystem(txt){
+ const el=document.createElement('div'); el.className='system'; el.textContent=txt;
+ document.getElementById('msgs').appendChild(el); scroll();
+}
+function addFileMsg(data){
+ const isMe=data.username===myInfo.username;
+ const el=document.createElement('div'); el.className=isMe?'msg me':'msg other';
+ el.innerHTML=\`<div class="sender">\${data.character} \${escapeHtml(data.username)}</div><div>📄 \${escapeHtml(data.fileName)} (\${(data.size/1024).toFixed(1)}KB)</div><a href="\${data.dataUrl}" download="\${data.fileName}" style="font-size:12px;color:#007AFF">다운로드</a>\`;
+ document.getElementById('msgs').appendChild(el); scroll();
+}
+function addVoiceMsg(data){
+ const isMe=data.username===myInfo.username;
+ const el=document.createElement('div'); el.className=isMe?'msg me':'msg other';
+ el.innerHTML=\`<div class="sender">\${data.character} \${escapeHtml(data.username)}</div><div style="display:flex;align-items:center;gap:8px"><button onclick="new Audio('\${data.dataUrl}').play()">▶️</button><div style="flex:1;height:4px;background:rgba(0,0,0,.1);border-radius:2px"><div style="width:100%;height:100%;background:#000;border-radius:2px;opacity:.2"></div></div><span style="font-size:12px">\${data.duration}s</span></div>\`;
+ document.getElementById('msgs').appendChild(el); scroll();
+}
+function scroll(){ const m=document.getElementById('msgs'); m.scrollTop=m.scrollHeight; }
+function sendText(){
+ if(isComposing) return;
+ const inp=document.getElementById('textIn'); 
+ let t=inp.value.trim(); 
+ if(!t) return;
+ t = t.replace(/\\s+/g, ' ');
+ socket.emit('chatMessage',{...myInfo, text:t}); 
+ inp.value='';
+ inp.focus();
+}
+function sendFile(f){
+ if(!f) return; const r=new FileReader(); r.onload=()=>{ socket.emit('fileMessage',{...myInfo, fileName:f.name, size:f.size, dataUrl:r.result}); }; r.readAsDataURL(f);
+}
+let rec, chunks=[], startT;
+async function toggleVoice(){
+ const btn=document.getElementById('micBtn');
+ if(rec && rec.state==='recording'){ rec.stop(); btn.textContent='🎤'; btn.style.background=''; btn.style.color=''; return; }
+ const stream=await navigator.mediaDevices.getUserMedia({audio:true});
+ rec=new MediaRecorder(stream); chunks=[]; startT=Date.now();
+ rec.ondataavailable=e=>chunks.push(e.data);
+ rec.onstop=()=>{ const blob=new Blob(chunks,{type:'audio/webm'}); const r=new FileReader(); r.onload=()=>{ socket.emit('voiceMessage',{...myInfo, dataUrl:r.result, duration:Math.round((Date.now()-startT)/1000)}); }; r.readAsDataURL(blob); };
+ rec.start(); btn.textContent='⏹️'; btn.style.background='#ff4444'; btn.style.color='#fff';
+}
+renderLogin();
+</script>
+</body>
+</html>`;
 
 app.get('/', (req, res) => {
-  const found = findFile('index.html', searchRoots);
-  if (found) {
-    console.log(`✅ Serving index.html from: ${found}`);
-    return res.sendFile(found);
-  }
-  
-  console.log('❌ index.html not found anywhere!');
-  const debug = searchRoots.map(d => listFiles(d, 2).join('\n')).join('\n\n');
-  
-  return res.status(404).send(`
-    <html><head><meta charset="UTF-8"><title>디버그</title></head><body style="font-family:monospace;padding:20px;white-space:pre-wrap;">
-    <h1>🔍 index.html을 찾을 수 없습니다</h1>
-    <p>__dirname: ${__dirname}</p>
-    <p>cwd: ${process.cwd()}</p>
-    <h2>파일 시스템:</h2>
-    ${debug}
-    <h2>해결방법:</h2>
-    1. GitHub에 index.html이 있는지 확인<br>
-    2. Render Settings -> Root Directory가 비어있는지 확인 (빈칸)<br>
-    3. Manual Deploy 다시 실행<br>
-    </body></html>
-  `);
+  res.send(HTML);
 });
-
-app.use(express.static(__dirname));
-app.use(express.static(path.join(__dirname, '..')));
-app.use(express.static(process.cwd()));
-app.use(express.static('/opt/render/project'));
-app.use(express.static('/opt/render/project/src'));
 
 let users = {};
 io.on('connection', (socket) => {
@@ -124,5 +213,5 @@ io.on('connection', (socket) => {
 });
 
 server.listen(PORT, () => {
-  console.log(`Server running on port ${PORT}`);
+  console.log(`✅ Server running on port ${PORT} - NO index.html file needed!`);
 });
