@@ -46,6 +46,7 @@
 <body>
 <div class="app" id="app"></div>
 <audio id="bgmPlayer" loop preload="auto"></audio>
+<audio id="enterSound" preload="auto" src="/enter.mp3"></audio>
 <script src="/socket.io/socket.io.js"></script>
 <script>
 const appEl = document.getElementById('app');
@@ -100,13 +101,67 @@ function enter(){
  renderChat();
  initBgm();
 }
+let enterSoundEnabled = localStorage.getItem('enterSoundEnabled') !== '0';
+function playEnterSound(){
+ if(!enterSoundEnabled) return;
+ try{
+   const enterEl = document.getElementById('enterSound');
+   // 1순위: mp3 파일이 있으면 그걸 재생
+   if(enterEl && enterEl.src){
+     enterEl.volume = Math.min(0.8, myVolume+0.2);
+     enterEl.currentTime = 0;
+     enterEl.play().catch(()=>{ playBeepFallback(); });
+   } else {
+     playBeepFallback();
+   }
+ }catch(e){ playBeepFallback(); }
+}
+function playBeepFallback(){
+ try{
+   const ctx = new (window.AudioContext || window.webkitAudioContext)();
+   const vol = ctx.createGain();
+   vol.gain.value = myVolume * 0.6;
+   vol.connect(ctx.destination);
+   // 띠링~ 두 번
+   [0, 150].forEach((delay, idx)=>{
+     setTimeout(()=>{
+       const osc = ctx.createOscillator();
+       osc.type = 'sine';
+       osc.frequency.value = idx===0? 800: 1200;
+       osc.connect(vol);
+       osc.start();
+       osc.stop(ctx.currentTime+0.25);
+     }, delay);
+   });
+ }catch(e){}
+}
 function initSocket(){
  socket=io();
  socket.emit('joinRoom', myInfo);
- socket.on('chatMessage', addMsg);
+ socket.on('chatMessage', (data)=>{
+   addMsg(data);
+   // 내 메시지가 아니면 알림음? 필요하면 주석 해제
+   // if(data.username !== myInfo.username) playEnterSound();
+ });
  socket.on('fileMessage', addFileMsg);
  socket.on('voiceMessage', addVoiceMsg);
- socket.on('systemMessage', (txt)=> addSystem(txt));
+ socket.on('systemMessage', (txt)=>{
+   addSystem(txt);
+   // "들어왔습니다" / "입장" 포함하면 입장 알람!
+   if(txt.includes('들어왔') || txt.includes('입장') || txt.includes('joined')){
+     if(!txt.includes(myInfo.username)) playEnterSound();
+   }
+ });
+ socket.on('userJoined', (data)=>{
+   // 서버에서 userJoined 이벤트 보내면 여기로 옴
+   if(data.username !== myInfo.username){
+     addSystem(`🔔 ${data.character||'🐣'} ${data.username}님이 들어왔습니다.`);
+     playEnterSound();
+   }
+ });
+ socket.on('userLeft', (data)=>{
+   addSystem(`👋 ${data.username}님이 나갔습니다.`);
+ });
  // BGM 트랙 변경은 방장만 - 전체에 동기화 (볼륨은 동기화 안함!)
  socket.on('bgmTrackChange', (track)=>{
    if(bgmList.includes(track)){
@@ -171,9 +226,17 @@ function renderBgmBar(){
     <span style="margin-left:auto;font-size:11px">🔊</span>
     <input type="range" id="volSlider" min="0" max="1" step="0.01" value="${myVolume}" oninput="changeMyVolume(this.value)">
     <button onclick="toggleBgmMute()">🔇</button>
+    <button onclick="toggleEnterSound()" id="enterBtn" style="margin-left:4px">${enterSoundEnabled?'🔔':'🔕'}</button>
   </div>
-  <div style="font-size:10px;color:#888;margin-top:4px">🔊 볼륨은 개인 설정 (나만 들림) | 🎵 곡 변경은 방장만</div>
+  <div style="font-size:10px;color:#888;margin-top:4px">🔊 볼륨은 개인 설정 | 🎵 곡 변경은 방장만 | 🔔 입장 알람 ${enterSoundEnabled?'ON':'OFF'}</div>
  `;
+}
+function toggleEnterSound(){
+ enterSoundEnabled = !enterSoundEnabled;
+ localStorage.setItem('enterSoundEnabled', enterSoundEnabled?'1':'0');
+ const btn = document.getElementById('enterBtn');
+ if(btn) btn.textContent = enterSoundEnabled?'🔔':'🔕';
+ if(enterSoundEnabled) playEnterSound(); // 테스트
 }
 function updateBgmSelect(){
  const sel = document.getElementById('bgmSelect');
