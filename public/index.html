@@ -3,8 +3,8 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
-<link rel="manifest" href="/manifest.json?v=19">
-<link rel="apple-touch-icon" href="/my-icon-180.png?v=19">
+<link rel="manifest" href="/manifest.json?v=20">
+<link rel="apple-touch-icon" href="/my-icon-180.png?v=20">
 <title>플로우갓의 채팅방</title>
 <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
 <meta name="theme-color" content="#ffffff">
@@ -21,29 +21,25 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Apple SD Gothic Neo','Noto Sa
 .bgmBar select{padding:5px 8px;border-radius:8px;border:1px solid #ddd;font-size:12px;background:#fff}
 .bgmBar input[type=range]{flex:1;min-width:50px;max-width:80px}
 .bgmBar button{padding:5px 8px;border:none;border-radius:8px;background:#fff;border:1px solid #ddd;cursor:pointer;font-size:12px}
-.emojiBarWrap{background:#fafafa;border-bottom:1px solid #eee}
-.quickBar{display:flex;gap:6px;overflow-x:auto;padding:8px 10px;scrollbar-width:none;align-items:center}
-.quickBar::-webkit-scrollbar{display:none}
-.emoBtn{flex:0 0 auto;padding:7px 12px;border-radius:20px;border:1px solid #eee;background:#fff;font-size:13px;cursor:pointer;white-space:nowrap;transition:.15s;font-weight:500}
-.emoBtn:active{transform:scale(.92);background:#FEE500}
-.emoToggle{flex:0 0 auto;padding:7px 12px;border-radius:20px;background:#000;color:#fff;font-size:12px;border:none;cursor:pointer}
-.emoPanel{display:block;background:#fff;padding:10px;border-top:1px solid #eee}
-.emoPanel.show{display:block}
-/* 2단 구조 */
-.catTabs{display:grid;grid-template-columns:repeat(3,1fr);gap:6px;padding-bottom:10px}
-.catTab{padding:10px 6px;border-radius:12px;border:1px solid #eee;background:#f5f5f7;font-size:13px;font-weight:700;cursor:pointer;transition:.15s;text-align:center;position:relative}
-.catTab.active{background:#000;color:#fff;border-color:#000}
-.catTab .cnt{font-size:10px;opacity:0.7;display:block;margin-top:2px}
-.catTab.active .cnt{color:#FEE500}
-.emoSecondTier{display:none;background:#fff;border:1px solid #eee;border-radius:16px;padding:10px;margin-top:2px;animation:slideDown .2s}
-.emoSecondTier.show{display:block}
-@keyframes slideDown{from{opacity:0;transform:translateY(-6px)}to{opacity:1;transform:translateY(0)}}
-.emoSecondTier .tierTitle{font-size:12px;font-weight:700;margin-bottom:8px;display:flex;justify-content:space-between;align-items:center}
-.emoGrid{display:grid;grid-template-columns:repeat(3,1fr);gap:8px}
-.emoCard{padding:12px 6px;border:1px solid #f0f0f0;border-radius:14px;background:#fff;text-align:center;cursor:pointer;transition:.15s}
-.emoCard:active{transform:scale(.93);background:#FEE500}
-.emoCard .e{font-size:24px;display:block;margin-bottom:4px}
-.emoCard .t{font-size:11px;font-weight:600;color:#333}
+/* 펼침 방식 + 작은 사이즈 + 하단 슬라이더 */
+.emojiBarWrap{background:#fafafa;border-bottom:1px solid #eee;position:relative}
+.emojiCollapsed{display:flex;gap:6px;overflow-x:auto;padding:8px 10px;scrollbar-width:none;align-items:center}
+.emojiCollapsed::-webkit-scrollbar{display:none}
+.catMini{flex:0 0 auto;width:34px;height:34px;border-radius:50%;border:1.5px solid #eee;background:#fff;display:grid;place-items:center;font-size:16px;cursor:pointer;transition:.15s}
+.catMini.active{background:#000;color:#fff;border-color:#000;transform:scale(1.1)}
+.catMini:active{transform:scale(.92)}
+.expandHint{font-size:10px;color:#888;margin-left:2px;white-space:nowrap}
+.emojiBottomSheet{position:absolute;bottom:100%;left:0;right:0;background:#fff;border-radius:16px 16px 0 0;box-shadow:0 -4px 20px rgba(0,0,0,.12);transform:translateY(110%);transition:transform .28s cubic-bezier(.32,.72,.38,1.2);z-index:20;max-height:150px;overflow:hidden;border:1px solid #eee;border-bottom:none}
+.emojiBottomSheet.show{transform:translateY(0)}
+.sliderHeader{display:flex;justify-content:space-between;align-items:center;padding:10px 14px 4px;font-size:11px;font-weight:700;color:#333}
+.emojiSlider{display:flex;gap:8px;overflow-x:auto;padding:8px 14px 14px;scroll-snap-type:x mandatory;scrollbar-width:none}
+.emojiSlider::-webkit-scrollbar{display:none}
+.emoSlideItem{flex:0 0 58px;scroll-snap-align:start;background:#fff;border:1px solid #f0f0f0;border-radius:14px;padding:8px 4px;text-align:center;cursor:pointer;transition:.15s}
+.emoSlideItem:active{transform:scale(.92);background:#FEE500}
+.emoSlideItem .e{font-size:22px;display:block;margin-bottom:3px}
+.emoSlideItem .t{font-size:10px;font-weight:600;color:#333;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.emoOverlay{position:absolute;inset:0;background:rgba(0,0,0,.12);display:none;z-index:10}
+.emoOverlay.show{display:block}
 .login{flex:1;display:flex;flex-direction:column;justify-content:center;padding:24px 28px;gap:14px;background:#fff;overflow-y:auto}
 .login h1{font-size:23px;line-height:1.3}
 .login input{padding:13px;border:1px solid #ddd;border-radius:12px;font-size:16px}
@@ -144,7 +140,7 @@ const quickEmojis = ['🙏 감사해요','🙌 할렐루야','😊 기뻐요','�
 function renderLogin(){
  appEl.innerHTML=`<div class="login" style="gap:16px">
   <div style="text-align:center;margin-bottom:4px">
-    <img src="/my-icon-512.png?v=19" onerror="this.src='/my-icon-192.png?v=19'; this.onerror=null" alt="플로우갓 캐릭터" style="width:132px;height:132px;border-radius:50%;object-fit:contain;background:#FEE500;padding:10px;box-shadow:0 8px 24px rgba(0,0,0,.15);display:inline-block">
+    <img src="/my-icon-512.png?v=20" onerror="this.src='/my-icon-192.png?v=20'; this.onerror=null" alt="플로우갓 캐릭터" style="width:132px;height:132px;border-radius:50%;object-fit:contain;background:#FEE500;padding:10px;box-shadow:0 8px 24px rgba(0,0,0,.15);display:inline-block">
   </div>
   <h1 style="text-align:center;font-size:22px">🐣 플로우갓의 채팅방 입장</h1>
   <input id="nameIn" placeholder="내 이름 (방장 포함하면 방장)" />
@@ -197,11 +193,11 @@ function initSocket(){
  socket.on('systemMessage',txt=>{addSystem(txt); if((txt.includes('들어왔')||txt.includes('입장')||txt.includes('입장'))&&!txt.includes(myInfo.username)) playEnterSound();});
  socket.on('userJoined',data=>{if(data.username!==myInfo.username){addSystem(`🔔 ${data.character||'🐣'} ${data.username}님이 들어왔습니다.`); playEnterSound();}});
  socket.on('userLeft',data=>addSystem(`👋 ${data.username}님이 나갔습니다.`));
- socket.on('bgmTrackChange',track=>{if(bgmList.includes(track)){currentTrack=track;const p=document.getElementById('bgmPlayer');const was=!p.paused;p.src='/'+track+'?v=19';localStorage.setItem('lastBgmTrack',track);updateBgmSelect();if(was)p.play().catch(()=>{});addSystem(`🎵 BGM 변경: ${track}`);}});
+ socket.on('bgmTrackChange',track=>{if(bgmList.includes(track)){currentTrack=track;const p=document.getElementById('bgmPlayer');const was=!p.paused;p.src='/'+track+'?v=20';localStorage.setItem('lastBgmTrack',track);updateBgmSelect();if(was)p.play().catch(()=>{});addSystem(`🎵 BGM 변경: ${track}`);}});
 }
 function renderChat(){
  const quickHtml = '';
- appEl.innerHTML=`<div class="header"><div class="headerTop"><b>${myInfo.character} ${myInfo.username} · ${roomId} ${isHost?'👑방장':''}</b><span style="font-size:11px;color:#888">플로우갓의 채팅방 v19</span></div><div id="bgmBarWrap"></div></div>
+ appEl.innerHTML=`<div class="header"><div class="headerTop"><b>${myInfo.character} ${myInfo.username} · ${roomId} ${isHost?'👑방장':''}</b><span style="font-size:11px;color:#888">플로우갓의 채팅방 v20</span></div><div id="bgmBarWrap"></div></div>
  <div class="emojiBarWrap" id="emojiBarWrap">
    <div class="emoPanel show" id="emoPanel" style="display:block"></div>
  </div>
@@ -223,53 +219,57 @@ function renderBgmBar(){
  const volHtml = isHost ? `<span style="margin-left:auto">🔊 <span id="volLabel">${Math.round(myVolume*100)}%</span></span><input type="range" id="volSlider" min="0" max="1" step="0.01" value="${myVolume}" oninput="changeMyVolume(this.value)" style="flex:1; accent-color:#000; max-width:90px"><button onclick="toggleBgmMute()">🔇</button>` : ``;
  w.innerHTML=`<div class="bgmBar"><button id="bgmPlayBtn" onclick="toggleBgm()">▶ 재생</button>${hostCtrl}${volHtml}<button onclick="toggleEnterSound()" id="enterBtn" style="margin-left:${isHost?'':'auto'}">${enterSoundEnabled?'🔔':'🔕'}</button></div><div style="font-size:10px;color:#888">${isHost?'👑 방장 | 볼륨조절 가능 | BGM 5곡 변경 가능':'일반 유저 | BGM 감상만 | 알람 '+ (enterSoundEnabled?'ON':'OFF')}</div>`;
 }
-let openedCat = '감사';
+let openedCat = null;
+let sliderOpen = false;
 function renderEmoPanel(){
   const panel=document.getElementById('emoPanel');
   if(!panel) return;
   const cats=Object.keys(emoticonCategories);
-  // 1단: 카테고리 6개 (2단 구조의 첫 번째 단)
-  const tabs=cats.map(c=>{
-    const cnt=emoticonCategories[c].length;
-    const active=openedCat===c?'active':'';
-    return `<button class="catTab ${active}" onclick="toggleSecondTier('${c}')"><span>${getCatIcon(c)} ${c}</span><span class="cnt">${cnt}개</span></button>`;
+  // 1단: 작게 펼침 방식 - 카테고리 6개 작은 원형 버튼
+  const collapsedTabs=cats.map(c=>{
+    const active=openedCat===c && sliderOpen ? 'active' : '';
+    return `<button class="catMini ${active}" onclick="toggleSecondTier('${c}')" title="${c}">${getCatIcon(c)}</button>`;
   }).join('');
-  // 2단: 선택된 카테고리의 이모지들 (2단 구조의 두 번째 단 - 채팅창 이모지)
-  let secondTierHtml='';
-  if(openedCat && emoticonCategories[openedCat]){
-    const items=emoticonCategories[openedCat].map(it=>`<div class="emoCard" onclick="sendReaction('${it.full}')"><span class="e">${it.emoji}</span><span class="t">${it.text}</span></div>`).join('');
-    secondTierHtml=`<div class="emoSecondTier show" style="display:block"><div class="tierTitle"><span>2단: ${getCatIcon(openedCat)} ${openedCat}</span><span style="font-size:11px;color:#888">클릭 → 채팅 전송</span></div><div class="emoGrid">${items}</div></div>`;
+  // 2단: 하단 슬라이더 형식 - 선택된 카테고리 이모지들 가로 슬라이더
+  let sliderHtml='';
+  if(openedCat && sliderOpen && emoticonCategories[openedCat]){
+    const items=emoticonCategories[openedCat].map(it=>`<div class="emoSlideItem" onclick="sendReaction('${it.full}'); closeSliderAfterSend()"><span class="e">${it.emoji}</span><span class="t">${it.text}</span></div>`).join('');
+    sliderHtml=`<div class="emojiBottomSheet ${sliderOpen?'show':''}" id="emojiSliderSheet"><div class="sliderHeader"><span>${getCatIcon(openedCat)} ${openedCat} - 좌우로 밀어 선택</span><button onclick="closeEmojiSlider()" style="border:none;background:#f2f2f2;width:24px;height:24px;border-radius:50%;font-size:12px;cursor:pointer">✕</button></div><div class="emojiSlider">${items}</div></div><div class="emoOverlay ${sliderOpen?'show':''}" id="emoOverlay" onclick="closeEmojiSlider()"></div>`;
   }
-  panel.innerHTML=`<div style="font-size:11px;font-weight:700;color:#888;margin-bottom:6px">1단: 카테고리 선택</div><div class="catTabs">${tabs}</div>${secondTierHtml}`;
+  panel.innerHTML=`<div class="emojiCollapsed">${collapsedTabs}<span class="expandHint">이모지 눌러 펼침 →</span></div>${sliderHtml}`;
 }
 function getCatIcon(cat){
   const icons={'감사':'🙏','찬양':'🙌','기쁨':'😊','슬픔':'😢','사랑':'❤️','응원':'💪'};
   return icons[cat]||'✨';
 }
 function toggleSecondTier(cat){
-  if(openedCat===cat){ openedCat=null; } else { openedCat=cat; }
-  renderEmoPanel();
-}
-function switchEmoCat(cat){ toggleSecondTier(cat); }
-function toggleEmoPanel(){
-  const p=document.getElementById('emoPanel');
-  if(!p) return;
-  p.classList.toggle('show');
-  if(p.classList.contains('show')){
-    if(!openedCat) openedCat='감사';
+  if(openedCat===cat && sliderOpen){
+    // 같은 카테고리 다시 누르면 닫기
+    closeEmojiSlider();
+  } else {
+    openedCat=cat;
+    sliderOpen=true;
     renderEmoPanel();
   }
 }
-function closeAfterSend(){
-  // 전송 후 2단은 유지 (연속 사용 편하게), 원하면 닫기
-  // document.getElementById('emoPanel')?.classList.remove('show');
+function closeEmojiSlider(){
+  sliderOpen=false;
+  renderEmoPanel();
 }
+function closeSliderAfterSend(){
+  // 전송 후에도 슬라이더 유지 - 연속 선택 편하게
+  // 바로 닫고 싶으면 아래 주석 해제
+  // setTimeout(()=>closeEmojiSlider(), 800);
+}
+function switchEmoCat(cat){ toggleSecondTier(cat); }
+function toggleEmoPanel(){ toggleSecondTier('감사'); }
+function closeAfterSend(){}
 function toggleEnterSound(){enterSoundEnabled=!enterSoundEnabled; localStorage.setItem('enterSoundEnabled',enterSoundEnabled?'1':'0'); const b=document.getElementById('enterBtn'); if(b) b.textContent=enterSoundEnabled?'🔔':'🔕'; if(enterSoundEnabled) playEnterSound();}
 function updateBgmSelect(){const s=document.getElementById('bgmSelect'); if(s) s.value=currentTrack;}
 function initBgm(){
   const p=document.getElementById('bgmPlayer');
   if(!p){console.log('bgmPlayer 없음!'); return;}
-  p.src='/'+currentTrack+'?v=19';
+  p.src='/'+currentTrack+'?v=20';
   p.volume=myVolume;
   p.preload='auto';
   console.log('BGM init',currentTrack,myVolume);
@@ -295,7 +295,7 @@ function changeTrack(t){
   currentTrack=t;
   const p=document.getElementById('bgmPlayer');
   const was=p && !p.paused;
-  if(p){ p.src='/'+t+'?v=19'; p.volume=myVolume; if(was) p.play().catch(()=>{}); }
+  if(p){ p.src='/'+t+'?v=20'; p.volume=myVolume; if(was) p.play().catch(()=>{}); }
   localStorage.setItem('lastBgmTrack',t);
   if(socket) socket.emit('bgmTrackChange',t);
   addSystem(`🎵 BGM 변경: ${t} (방장)`);
