@@ -3,8 +3,8 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
-<link rel="manifest" href="/manifest.json?v=22">
-<link rel="apple-touch-icon" href="/my-icon-180.png?v=22">
+<link rel="manifest" href="/manifest.json?v=23">
+<link rel="apple-touch-icon" href="/my-icon-180.png?v=23">
 <title>플로우갓의 채팅방</title>
 <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
 <meta name="theme-color" content="#ffffff">
@@ -41,7 +41,7 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Apple SD Gothic Neo','Noto Sa
 .emoOverlay{position:absolute;inset:0;background:rgba(0,0,0,.12);display:none;z-index:10}
 .emoOverlay.show{display:block}
 .emojiBarWrap.hidden{display:none !important}
-.emojiRestoreBtn{position:absolute;right:10px;bottom:70px;background:#fff;border:1px solid #eee;border-radius:20px;padding:6px 10px;font-size:12px;box-shadow:0 2px 8px rgba(0,0,0,.1);z-index:5;cursor:pointer;display:none}
+.emojiRestoreBtn{position:absolute;left:10px;bottom:70px;background:#fff;border:1px solid #eee;border-radius:20px;padding:6px 12px;font-size:12px;box-shadow:0 2px 8px rgba(0,0,0,.1);z-index:5;cursor:pointer;display:none}
 .emojiRestoreBtn.show{display:block}
 .emojiCollapsed{cursor:pointer}
 .login{flex:1;display:flex;flex-direction:column;justify-content:center;padding:24px 28px;gap:14px;background:#fff;overflow-y:auto}
@@ -144,7 +144,7 @@ const quickEmojis = ['🙏 감사해요','🙌 할렐루야','😊 기뻐요','�
 function renderLogin(){
  appEl.innerHTML=`<div class="login" style="gap:16px">
   <div style="text-align:center;margin-bottom:4px">
-    <img src="/my-icon-512.png?v=22" onerror="this.src='/my-icon-192.png?v=22'; this.onerror=null" alt="플로우갓 캐릭터" style="width:132px;height:132px;border-radius:50%;object-fit:contain;background:#FEE500;padding:10px;box-shadow:0 8px 24px rgba(0,0,0,.15);display:inline-block">
+    <img src="/my-icon-512.png?v=23" onerror="this.src='/my-icon-192.png?v=23'; this.onerror=null" alt="플로우갓 캐릭터" style="width:132px;height:132px;border-radius:50%;object-fit:contain;background:#FEE500;padding:10px;box-shadow:0 8px 24px rgba(0,0,0,.15);display:inline-block">
   </div>
   <h1 style="text-align:center;font-size:22px">🐣 플로우갓의 채팅방 입장</h1>
   <input id="nameIn" placeholder="내 이름 (방장 포함하면 방장)" />
@@ -197,10 +197,10 @@ function initSocket(){
  socket.on('systemMessage',txt=>{addSystem(txt); if((txt.includes('들어왔')||txt.includes('입장')||txt.includes('입장'))&&!txt.includes(myInfo.username)) playEnterSound();});
  socket.on('userJoined',data=>{if(data.username!==myInfo.username){addSystem(`🔔 ${data.character||'🐣'} ${data.username}님이 들어왔습니다.`); playEnterSound();}});
  socket.on('userLeft',data=>addSystem(`👋 ${data.username}님이 나갔습니다.`));
- socket.on('bgmTrackChange',track=>{if(bgmList.includes(track)){currentTrack=track;const p=document.getElementById('bgmPlayer');const was=!p.paused;p.src='/'+track+'?v=22';localStorage.setItem('lastBgmTrack',track);updateBgmSelect();if(was)p.play().catch(()=>{});addSystem(`🎵 BGM 변경: ${track}`);}});
+ socket.on('bgmTrackChange',track=>{if(bgmList.includes(track)){currentTrack=track;const p=document.getElementById('bgmPlayer');const was=!p.paused;p.src='/'+track+'?v=23';localStorage.setItem('lastBgmTrack',track);updateBgmSelect();if(was)p.play().catch(()=>{});addSystem(`🎵 BGM 변경: ${track}`);}});
 }
 function renderChat(){
- appEl.innerHTML=`<div class="header"><div class="headerTop"><b>${myInfo.character} ${myInfo.username} · ${roomId} ${isHost?'👑방장':''}</b><span style="font-size:11px;color:#888">플로우갓의 채팅방 v22</span></div><div id="bgmBarWrap"></div></div>
+ appEl.innerHTML=`<div class="header"><div class="headerTop"><b>${myInfo.character} ${myInfo.username} · ${roomId} ${isHost?'👑방장':''}</b><span style="font-size:11px;color:#888">플로우갓의 채팅방 v23</span></div><div id="bgmBarWrap"></div></div>
  <div class="messages" id="msgs"></div>
  <div class="emojiBarWrap" id="emojiBarWrap">
    <div class="emoPanel show" id="emoPanel" style="display:block"></div>
@@ -238,10 +238,10 @@ function renderEmoPanel(){
   let sliderHtml='';
   if(openedCat && sliderOpen && emoticonCategories[openedCat]){
     const items=emoticonCategories[openedCat].map(it=>`<div class="emoSlideItem" onclick="sendReaction('${it.full}'); closeSliderAfterSend()"><span class="e">${it.emoji}</span><span class="t">${it.text}</span></div>`).join('');
-    sliderHtml=`<div class="emojiBottomSheet ${sliderOpen?'show':''}" id="emojiSliderSheet"><div class="sliderHeader" style="justify-content:flex-end"><button onclick="closeEmojiSlider()" style="border:none;background:#f2f2f2;width:24px;height:24px;border-radius:50%;font-size:12px;cursor:pointer">✕</button></div><div class="emojiSlider">${items}</div></div><div class="emoOverlay ${sliderOpen?'show':''}" id="emoOverlay" onclick="closeEmojiSlider()"></div>`;
+    sliderHtml=`<div class="emojiBottomSheet ${sliderOpen?'show':''}" id="emojiSliderSheet"><div class="emojiSlider">${items}</div></div><div class="emoOverlay ${sliderOpen?'show':''}" id="emoOverlay" onclick="closeEmojiSlider()"></div>`;
   }
-  const hideHint = `<span class="expandHint" onclick="hideEmojiBar()" style="cursor:pointer">숨기기 ↑</span>`;
-  panel.innerHTML=`<div class="emojiCollapsed" id="emojiCollapsedBar">${collapsedTabs}${hideHint}</div>${sliderHtml}`;
+  const hideHint = `<span class="expandHint" onclick="event.stopPropagation(); hideEmojiBar()" style="cursor:pointer;background:#f2f2f2;padding:4px 8px;border-radius:12px;font-size:11px;margin-right:6px">← 숨기기</span>`;
+  panel.innerHTML=`<div class="emojiCollapsed" id="emojiCollapsedBar">${hideHint}${collapsedTabs}</div>${sliderHtml}`;
 }
 function getCatIcon(cat){
   const icons={'감사':'🙏','찬양':'🙌','기쁨':'😊','슬픔':'😢','사랑':'❤️','응원':'💪'};
@@ -266,6 +266,7 @@ function hideEmojiBar(){
   if(wrap) wrap.classList.add('hidden');
   const restore = document.getElementById('emojiRestoreBtn');
   if(restore) restore.classList.add('show');
+  closeEmojiSlider();
 }
 function showEmojiBar(){
   const wrap = document.getElementById('emojiBarWrap');
@@ -286,7 +287,7 @@ function updateBgmSelect(){const s=document.getElementById('bgmSelect'); if(s) s
 function initBgm(){
   const p=document.getElementById('bgmPlayer');
   if(!p){console.log('bgmPlayer 없음!'); return;}
-  p.src='/'+currentTrack+'?v=22';
+  p.src='/'+currentTrack+'?v=23';
   p.volume=myVolume;
   p.preload='auto';
   console.log('BGM init',currentTrack,myVolume);
@@ -312,7 +313,7 @@ function changeTrack(t){
   currentTrack=t;
   const p=document.getElementById('bgmPlayer');
   const was=p && !p.paused;
-  if(p){ p.src='/'+t+'?v=22'; p.volume=myVolume; if(was) p.play().catch(()=>{}); }
+  if(p){ p.src='/'+t+'?v=23'; p.volume=myVolume; if(was) p.play().catch(()=>{}); }
   localStorage.setItem('lastBgmTrack',t);
   if(socket) socket.emit('bgmTrackChange',t);
   addSystem(`🎵 BGM 변경: ${t} (방장)`);
