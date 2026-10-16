@@ -3,8 +3,8 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
-<link rel="manifest" href="/manifest.json?v=27">
-<link rel="apple-touch-icon" href="/my-icon-180.png?v=27">
+<link rel="manifest" href="/manifest.json?v=29">
+<link rel="apple-touch-icon" href="/my-icon-180.png?v=29">
 <title>플로우갓의 채팅방</title>
 <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
 <meta name="theme-color" content="#ffffff">
@@ -56,17 +56,12 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Apple SD Gothic Neo','Noto Sa
   100%{opacity:0;transform:translate(-50%,-30%) scale(0.7)}
 }
 .messages{position:relative}
-.shareModal{position:fixed;inset:0;background:rgba(0,0,0,.45);backdrop-filter:blur(8px);display:none;place-items:center;z-index:9999;padding:20px}
-.shareModal.show{display:grid}
-.shareBox{background:#fff;border-radius:20px;padding:20px 18px 16px;width:100%;max-width:340px;box-shadow:0 20px 60px rgba(0,0,0,.2);animation:pop .25s}
-.shareBox h3{font-size:16px;text-align:center;margin-bottom:12px}
-.shareLinkBox{display:flex;gap:8px;background:#f5f5f7;border-radius:12px;padding:10px 12px;margin-bottom:14px;align-items:center}
-.shareLinkBox input{flex:1;border:none;background:transparent;font-size:13px;outline:none;overflow:hidden;text-overflow:ellipsis}
-.shareBtns{display:grid;grid-template-columns:1fr 1fr;gap:8px}
-.shareBtn{padding:12px 8px;border-radius:12px;border:1px solid #eee;background:#fff;font-size:13px;font-weight:600;cursor:pointer;display:flex;flex-direction:column;align-items:center;gap:4px;transition:.15s}
-.shareBtn:active{transform:scale(.96);background:#FEE500}
-.shareBtn.kakao{background:#FEE500;border-color:#FEE500}
-.shareClose{width:100%;margin-top:10px;padding:12px;background:#f5f5f7;border:none;border-radius:12px;font-weight:600;cursor:pointer}
+.topImgWrap{text-align:center;cursor:pointer;transition:.3s;position:relative}
+.topImgWrap.hide{opacity:0;transform:scale(0.8) translateY(-20px);pointer-events:none;height:0;overflow:hidden;margin:0 !important}
+.topImg{width:132px;height:132px;border-radius:50%;object-fit:cover;box-shadow:0 8px 24px rgba(0,0,0,.12);cursor:pointer;transition:.25s}
+.topBanner{width:100%;cursor:pointer;transition:.3s}
+.topBanner.hide{opacity:0;height:0;overflow:hidden;transform:translateY(-20px);pointer-events:none}
+.floatingEmoji{cursor:pointer}
 .emojiCollapsed{cursor:pointer}
 .login{flex:1;display:flex;flex-direction:column;justify-content:center;padding:24px 28px;gap:14px;background:#fff;overflow-y:auto}
 .login h1{font-size:23px;line-height:1.3}
@@ -169,7 +164,7 @@ const quickEmojis = ['🙏 감사해요','🙌 할렐루야','😊 기뻐요','�
 function renderLogin(){
  appEl.innerHTML=`<div class="login" style="gap:16px">
   <div style="text-align:center;margin-bottom:4px">
-    <img src="/my-icon-512.png?v=27" onerror="this.src='/my-icon-192.png?v=27'; this.onerror=null" alt="플로우갓 캐릭터" style="width:132px;height:132px;border-radius:50%;object-fit:contain;background:#FEE500;padding:10px;box-shadow:0 8px 24px rgba(0,0,0,.15);display:inline-block">
+    <img src="/my-icon-512.png?v=29" onerror="this.src='/my-icon-192.png?v=29'; this.onerror=null" alt="플로우갓 캐릭터" style="width:132px;height:132px;border-radius:50%;object-fit:contain;background:#FEE500;padding:10px;box-shadow:0 8px 24px rgba(0,0,0,.15);display:inline-block">
   </div>
   <h1 style="text-align:center;font-size:22px">🐣 플로우갓의 채팅방 입장</h1>
   <input id="nameIn" placeholder="내 이름 (방장 포함하면 방장)" />
@@ -222,10 +217,10 @@ function initSocket(){
  socket.on('systemMessage',txt=>{addSystem(txt); if((txt.includes('들어왔')||txt.includes('입장')||txt.includes('입장'))&&!txt.includes(myInfo.username)) playEnterSound();});
  socket.on('userJoined',data=>{if(data.username!==myInfo.username){addSystem(`🔔 ${data.character||'🐣'} ${data.username}님이 들어왔습니다.`); playEnterSound();}});
  socket.on('userLeft',data=>addSystem(`👋 ${data.username}님이 나갔습니다.`));
- socket.on('bgmTrackChange',track=>{if(bgmList.includes(track)){currentTrack=track;const p=document.getElementById('bgmPlayer');const was=!p.paused;p.src='/'+track+'?v=27';localStorage.setItem('lastBgmTrack',track);updateBgmSelect();if(was)p.play().catch(()=>{});addSystem(`🎵 BGM 변경: ${track}`);}});
+ socket.on('bgmTrackChange',track=>{if(bgmList.includes(track)){currentTrack=track;const p=document.getElementById('bgmPlayer');const was=!p.paused;p.src='/'+track+'?v=29';localStorage.setItem('lastBgmTrack',track);updateBgmSelect();if(was)p.play().catch(()=>{});addSystem(`🎵 BGM 변경: ${track}`);}});
 }
 function renderChat(){
- appEl.innerHTML=`<div class="header"><div class="headerTop"><b>${myInfo.character} ${myInfo.username} · ${roomId} ${isHost?'👑방장':''}</b><div style="display:flex;gap:6px;align-items:center"><button onclick="openShare()" style="padding:5px 10px;border-radius:20px;border:1px solid #eee;background:#FEE500;font-size:12px;font-weight:700;cursor:pointer">🔗 공유</button><span style="font-size:11px;color:#888">플로우갓의 채팅방 v27</span></div><div id="bgmBarWrap"></div></div>
+ appEl.innerHTML=`<div class="header"><div class="headerTop"><b>${myInfo.character} ${myInfo.username} · ${roomId} ${isHost?'👑방장':''}</b><span style="font-size:11px;color:#888">플로우갓의 채팅방 v29</span></div><div id="bgmBarWrap"></div></div>
  <div class="messages" id="msgs" onclick="handleMessagesClick(event)"></div>
  <div class="emojiBarWrap" id="emojiBarWrap">
    <div class="emoPanel show" id="emoPanel" style="display:block"></div>
@@ -259,31 +254,27 @@ function showFloatingEmoji(emoji){
   msgsEl.appendChild(el);
   setTimeout(function(){ if(el.parentNode) el.remove(); }, 2300);
 }
+function hideTopImg(el){
+  if(!el) return;
+  el.classList.add('hide');
+  setTimeout(function(){ el.style.display='none'; }, 350);
+}
+function toggleTopBanner(){
+  var banner=document.getElementById('topBanner');
+  var wrap=document.getElementById('topImgWrap');
+  if(banner) hideTopImg(banner);
+  if(wrap) hideTopImg(wrap);
+  var bgm=document.querySelector('.bgmBar');
+  if(bgm){ bgm.style.transition='.3s'; bgm.style.opacity='0'; bgm.style.height='0'; bgm.style.overflow='hidden'; bgm.style.margin='0'; bgm.style.padding='0'; setTimeout(function(){ bgm.style.display='none'; }, 300); }
+}
 function handleMessagesClick(e){
-  // Don't hide if clicking floating emoji itself or message content that is link
   if(e.target.closest && e.target.closest('.floatingEmoji')) return;
-  // Hide emoji slider when clicking chat background
-  if(sliderOpen){
-    closeEmojiSlider();
-  }
-  // If user clicks empty chat area, also hide whole emoji bar for more space
-  // (optional - enable to hide whole bar)
-  var isEmptyArea = e.target.id==='msgs' || e.target.classList.contains('messages');
-  if(isEmptyArea && !sliderOpen){
-    // Uncomment to hide whole bar on chat click:
-    // hideEmojiBar();
-  }
+  if(sliderOpen){ closeEmojiSlider(); }
 }
 function handleEmojiCardClick(emoji, fullText){
-  // When clicking large emoji cards in bottom sheet, hide the top emoji bar
   showFloatingEmoji(emoji);
   if(fullText) sendReaction(fullText);
-  // Hide the emoji bar (top emoji disappear) after selection
-  setTimeout(function(){
-    closeEmojiSlider();
-    // hide whole emoji bar after send for clean chat view
-    hideEmojiBar();
-  }, 500);
+  setTimeout(function(){ closeEmojiSlider(); hideEmojiBar(); }, 500);
 }
 let openedCat = null;
 let sliderOpen = false;
@@ -300,7 +291,7 @@ function renderEmoPanel(){
   let sliderHtml='';
   if(openedCat && sliderOpen && emoticonCategories[openedCat]){
     const items=emoticonCategories[openedCat].map(it=>`<div class="emoSlideItem" onclick="sendReaction('${it.full}'); closeSliderAfterSend()"><span class="e">${it.emoji}</span><span class="t">${it.text}</span></div>`).join('');
-    sliderHtml=`<div class="emojiBottomSheet ${sliderOpen?'show':''}" id="emojiSliderSheet" onclick="if(event.target.id==='emojiSliderSheet') closeEmojiSlider()"><div class="emojiSlider">${items}</div></div><div class="emoOverlay ${sliderOpen?'show':''}" id="emoOverlay" onclick="closeEmojiSlider(); hideEmojiBar();"></div>`;
+    sliderHtml=`<div class="emojiBottomSheet ${sliderOpen?'show':''}" id="emojiSliderSheet"><div class="emojiSlider">${items}</div></div><div class="emoOverlay ${sliderOpen?'show':''}" id="emoOverlay" onclick="closeEmojiSlider(); hideEmojiBar();"></div>`;
   }
   const hideHint = `<span class="expandHint" onclick="event.stopPropagation(); hideEmojiBar()" style="cursor:pointer;background:#f2f2f2;padding:4px 8px;border-radius:12px;font-size:11px;margin-right:6px">← 숨기기</span>`;
   panel.innerHTML=`<div class="emojiCollapsed" id="emojiCollapsedBar">${hideHint}${collapsedTabs}</div>${sliderHtml}`;
@@ -365,7 +356,7 @@ function updateBgmSelect(){const s=document.getElementById('bgmSelect'); if(s) s
 function initBgm(){
   const p=document.getElementById('bgmPlayer');
   if(!p){console.log('bgmPlayer 없음!'); return;}
-  p.src='/'+currentTrack+'?v=27';
+  p.src='/'+currentTrack+'?v=29';
   p.volume=1;
   p.preload='auto';
   p.setAttribute('playsinline','');
@@ -398,7 +389,7 @@ function changeTrack(t){
   const p=document.getElementById('bgmPlayer');
   const was=p && !p.paused;
   if(p){ 
-    p.src='/'+t+'?v=27'; 
+    p.src='/'+t+'?v=29'; 
     if(gainNode) gainNode.gain.value = myVolume;
     p.volume=1;
     if(was) p.play().catch(function(){}); 
@@ -456,7 +447,10 @@ function addFileMsg(d){
 function addVoiceMsg(d){const me=d.username===myInfo.username; const el=document.createElement('div'); el.className=me?'msg me':'msg other'; el.innerHTML=`<div class="sender">${d.character||'🐣'} ${esc(d.username)}</div><div style="display:flex;align-items:center;gap:8px"><button onclick="new Audio('${d.dataUrl}').play()" style="padding:6px 12px;border-radius:20px;border:none;background:#fff">▶ ${d.duration||'?'}s 음성</button></div>`; document.getElementById('msgs').appendChild(el); scroll();}
 function scroll(){const m=document.getElementById('msgs'); if(m) m.scrollTop=m.scrollHeight;}
 function sendText(){if(isComposing) return; const inp=document.getElementById('textIn'); let t=inp.value.trim(); if(!t) return; t=t.replace(/\s+/g,' '); socket.emit('chatMessage',{...myInfo,text:t}); inp.value=''; inp.focus();}
-function sendReaction(txt){socket.emit('chatMessage',{...myInfo,text:txt});}
+function sendReaction(txt){
+  var first = txt.trim().split(' ')[0] || '😊';
+  showFloatingEmoji(first);
+socket.emit('chatMessage',{...myInfo,text:txt});}
 function sendFile(f){if(!f) return; if(f.size>10*1024*1024) return alert('10MB 이하만 가능해요'); const r=new FileReader(); r.onload=()=>{socket.emit('fileMessage',{...myInfo,fileName:f.name,size:f.size,dataUrl:r.result});}; r.readAsDataURL(f); document.getElementById('fileIn').value='';}
 function openModal(url,name){document.getElementById('modalImg').src=url; document.getElementById('modalDown').href=url; document.getElementById('modalDown').download=name; document.getElementById('imgModal').classList.add('show');}
 function closeModal(e){if(e.target.id==='imgModal'||e.target.id==='modalImg') document.getElementById('imgModal').classList.remove('show');}
@@ -472,117 +466,7 @@ async function toggleVoice(){
  rec.start(); btn.textContent='⏹'; btn.style.background='#ff4444';
  }catch(e){alert('마이크 권한 필요!');}
 }
-function getShareLink(){ return window.location.origin || 'https://realtime-chat-8ov2.onrender.com'; }
-function openShare(){
-  var modal=document.getElementById('shareModal');
-  var input=document.getElementById('shareLinkInput');
-  var link=getShareLink();
-  if(input) input.value=link;
-  if(modal) modal.classList.add('show');
-  // QR 숨김 초기화
-  var qrBox=document.getElementById('qrBox');
-  if(qrBox) qrBox.style.display='none';
-}
-function closeShare(){ var m=document.getElementById('shareModal'); if(m) m.classList.remove('show'); }
-function copyShareLink(){
-  var link=getShareLink();
-  if(navigator.clipboard){
-    navigator.clipboard.writeText(link).then(function(){ alert('✅ 링크 복사 완료!\n'+link); }).catch(function(){ fallbackCopy(link); });
-  } else { fallbackCopy(link); }
-}
-function fallbackCopy(text){
-  var ta=document.createElement('textarea'); ta.value=text; document.body.appendChild(ta); ta.select(); try{ document.execCommand('copy'); alert('✅ 링크 복사 완료!'); }catch(e){ prompt('링크를 복사하세요:', text); } ta.remove();
-}
-function shareKakao(){
-  var link=getShareLink();
-  // Kakao SDK 없이 링크 복사 후 카톡으로 이동 유도
-  // 만약 카카오 SDK 있으면 공유, 없으면 클립보드 복사 후 안내
-  if(window.Kakao && Kakao.isInitialized()){
-    Kakao.Share.sendDefault({
-      objectType:'text',
-      text:'🐣 플로우갓의 채팅방에 초대할게!\n바로 입장해보자!',
-      link:{ mobileWebUrl:link, webUrl:link },
-    });
-  } else {
-    copyShareLink();
-    // 카톡 공유 URL로 이동 (선택)
-    var isMobile=/iPhone|iPad|iPod|Android/i.test(navigator.userAgent);
-    if(isMobile && confirm('링크 복사 완료! 카톡을 열어 공유할까요?')){
-      location.href='kakaolink://';
-      setTimeout(function(){ window.open('https://accounts.kakao.com/login?continue='+encodeURIComponent(link)); }, 500);
-    }
-  }
-}
-function shareNative(){
-  var link=getShareLink();
-  if(navigator.share){
-    navigator.share({ title:'플로우갓의 채팅방', text:'🐣 플로우갓의 채팅방에 입장해보자!', url:link }).catch(function(){});
-  } else {
-    copyShareLink();
-  }
-}
-function shareQR(){
-  var box=document.getElementById('qrBox');
-  var canvas=document.getElementById('qrCanvas');
-  if(!box||!canvas) return;
-  if(box.style.display==='none'){
-    box.style.display='block';
-    drawQR(canvas, getShareLink());
-  } else {
-    box.style.display='none';
-  }
-}
-function drawQR(canvas, text){
-  // Simple QR placeholder using canvas - qr with dots
-  // For real QR, use external lib, but here draw URL text QR-like fallback
-  try{
-    // Try to use qrcode lib if loaded, else draw simple placeholder
-    var ctx=canvas.getContext('2d');
-    var size=200;
-    canvas.width=size; canvas.height=size;
-    ctx.fillStyle='#fff'; ctx.fillRect(0,0,size,size);
-    ctx.fillStyle='#000';
-    // Simple fake QR pattern + text
-    // Draw border
-    ctx.fillRect(0,0,size,12); ctx.fillRect(0,0,12,size);
-    ctx.fillRect(0,size-12,size,12); ctx.fillRect(size-12,0,12,size);
-    ctx.font='bold 10px sans-serif';
-    ctx.textAlign='center';
-    ctx.fillText('QR', size/2, size/2-10);
-    ctx.font='8px sans-serif';
-    // Use actual QR API via chart
-    var img=new Image();
-    img.crossOrigin='anonymous';
-    img.onload=function(){
-      ctx.clearRect(0,0,size,size);
-      ctx.drawImage(img,0,0,size,size);
-    };
-    img.src='https://api.qrserver.com/v1/create-qr-code/?size=200x200&data='+encodeURIComponent(text);
-  }catch(e){
-    console.log('QR error',e);
-  }
-}
 renderLogin();
 </script>
-<div id="shareModal" class="shareModal" onclick="if(event.target.id==='shareModal') closeShare()">
-  <div class="shareBox">
-    <h3>🔗 플로우갓의 채팅방 공유</h3>
-    <div class="shareLinkBox">
-      <input id="shareLinkInput" readonly value="">
-      <button onclick="copyShareLink()" style="padding:6px 10px;border-radius:8px;border:none;background:#000;color:#fff;font-size:12px;font-weight:700;cursor:pointer">복사</button>
-    </div>
-    <div class="shareBtns">
-      <button class="shareBtn kakao" onclick="shareKakao()"><span style="font-size:20px">💬</span>카톡 공유</button>
-      <button class="shareBtn" onclick="shareNative()"><span style="font-size:20px">📤</span>공유하기</button>
-      <button class="shareBtn" onclick="copyShareLink()"><span style="font-size:20px">🔗</span>링크 복사</button>
-      <button class="shareBtn" onclick="shareQR()"><span style="font-size:20px">📷</span>QR 보기</button>
-    </div>
-    <div id="qrBox" style="display:none;text-align:center;margin-top:14px;padding:12px;background:#fff;border-radius:12px;border:1px dashed #ddd">
-      <canvas id="qrCanvas" style="width:160px;height:160px"></canvas>
-      <div style="font-size:11px;color:#888;margin-top:6px">QR 찍고 바로 입장!</div>
-    </div>
-    <button class="shareClose" onclick="closeShare()">닫기</button>
-  </div>
-</div>
 </body>
 </html>
