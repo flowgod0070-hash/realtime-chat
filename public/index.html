@@ -3,8 +3,8 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
-<link rel="manifest" href="/manifest.json?v=29">
-<link rel="apple-touch-icon" href="/my-icon-180.png?v=29">
+<link rel="manifest" href="/manifest.json?v=30">
+<link rel="apple-touch-icon" href="/my-icon-180.png?v=30">
 <title>플로우갓의 채팅방</title>
 <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
 <meta name="theme-color" content="#ffffff">
@@ -164,7 +164,7 @@ const quickEmojis = ['🙏 감사해요','🙌 할렐루야','😊 기뻐요','�
 function renderLogin(){
  appEl.innerHTML=`<div class="login" style="gap:16px">
   <div style="text-align:center;margin-bottom:4px">
-    <img src="/my-icon-512.png?v=29" onerror="this.src='/my-icon-192.png?v=29'; this.onerror=null" alt="플로우갓 캐릭터" style="width:132px;height:132px;border-radius:50%;object-fit:contain;background:#FEE500;padding:10px;box-shadow:0 8px 24px rgba(0,0,0,.15);display:inline-block">
+    <img src="/my-icon-512.png?v=30" onerror="this.src='/my-icon-192.png?v=30'; this.onerror=null" alt="플로우갓 캐릭터" style="width:132px;height:132px;border-radius:50%;object-fit:contain;background:#FEE500;padding:10px;box-shadow:0 8px 24px rgba(0,0,0,.15);display:inline-block">
   </div>
   <h1 style="text-align:center;font-size:22px">🐣 플로우갓의 채팅방 입장</h1>
   <input id="nameIn" placeholder="내 이름 (방장 포함하면 방장)" />
@@ -217,10 +217,10 @@ function initSocket(){
  socket.on('systemMessage',txt=>{addSystem(txt); if((txt.includes('들어왔')||txt.includes('입장')||txt.includes('입장'))&&!txt.includes(myInfo.username)) playEnterSound();});
  socket.on('userJoined',data=>{if(data.username!==myInfo.username){addSystem(`🔔 ${data.character||'🐣'} ${data.username}님이 들어왔습니다.`); playEnterSound();}});
  socket.on('userLeft',data=>addSystem(`👋 ${data.username}님이 나갔습니다.`));
- socket.on('bgmTrackChange',track=>{if(bgmList.includes(track)){currentTrack=track;const p=document.getElementById('bgmPlayer');const was=!p.paused;p.src='/'+track+'?v=29';localStorage.setItem('lastBgmTrack',track);updateBgmSelect();if(was)p.play().catch(()=>{});addSystem(`🎵 BGM 변경: ${track}`);}});
+ socket.on('bgmTrackChange',track=>{if(bgmList.includes(track)){currentTrack=track;const p=document.getElementById('bgmPlayer');const was=!p.paused;p.src='/'+track+'?v=30';localStorage.setItem('lastBgmTrack',track);updateBgmSelect();if(was)p.play().catch(()=>{});addSystem(`🎵 BGM 변경: ${track}`);}});
 }
 function renderChat(){
- appEl.innerHTML=`<div class="header"><div class="headerTop"><b>${myInfo.character} ${myInfo.username} · ${roomId} ${isHost?'👑방장':''}</b><span style="font-size:11px;color:#888">플로우갓의 채팅방 v29</span></div><div id="bgmBarWrap"></div></div>
+ appEl.innerHTML=`<div class="header"><div class="headerTop" onclick="if(document.getElementById('bgmBarWrap') && document.getElementById('bgmBarWrap').style.display==='none') showTopMenu(); else hideTopMenu();" title="클릭하면 상단 메뉴 숨김/복원"><b>${myInfo.character} ${myInfo.username} · ${roomId} ${isHost?'👑방장':''}</b><span style="font-size:11px;color:#888">플로우갓의 채팅방 v30</span></div><div id="bgmBarWrap"></div></div>
  <div class="messages" id="msgs" onclick="handleMessagesClick(event)"></div>
  <div class="emojiBarWrap" id="emojiBarWrap">
    <div class="emoPanel show" id="emoPanel" style="display:block"></div>
@@ -259,6 +259,36 @@ function hideTopImg(el){
   el.classList.add('hide');
   setTimeout(function(){ el.style.display='none'; }, 350);
 }
+function hideTopMenu(){
+  var bgmBarWrap = document.getElementById('bgmBarWrap');
+  var header = document.querySelector('.header');
+  if(bgmBarWrap){
+    bgmBarWrap.style.transition='.35s';
+    bgmBarWrap.style.opacity='0';
+    bgmBarWrap.style.transform='translateY(-20px)';
+    bgmBarWrap.style.height='0';
+    bgmBarWrap.style.overflow='hidden';
+    bgmBarWrap.style.margin='0';
+    bgmBarWrap.style.padding='0';
+    setTimeout(function(){ bgmBarWrap.style.display='none'; }, 350);
+  }
+  // BGM bar only hide, header stays
+}
+function showTopMenu(){
+  var bgmBarWrap = document.getElementById('bgmBarWrap');
+  if(bgmBarWrap){
+    bgmBarWrap.style.display='flex';
+    bgmBarWrap.style.flexDirection='column';
+    setTimeout(function(){
+      bgmBarWrap.style.opacity='1';
+      bgmBarWrap.style.transform='translateY(0)';
+      bgmBarWrap.style.height='auto';
+      bgmBarWrap.style.overflow='visible';
+      bgmBarWrap.style.margin='';
+      bgmBarWrap.style.padding='';
+    }, 20);
+  }
+}
 function toggleTopBanner(){
   var banner=document.getElementById('topBanner');
   var wrap=document.getElementById('topImgWrap');
@@ -272,9 +302,17 @@ function handleMessagesClick(e){
   if(sliderOpen){ closeEmojiSlider(); }
 }
 function handleEmojiCardClick(emoji, fullText){
+  // 지금 형식대로: 중앙 팝업 + 메시지 전송 유지
   showFloatingEmoji(emoji);
   if(fullText) sendReaction(fullText);
-  setTimeout(function(){ closeEmojiSlider(); hideEmojiBar(); }, 500);
+  // 상단 메뉴(BGM 바) 사라지게
+  hideTopMenu();
+  // 이모지 카드는 잠깐 보여주고 닫기 (기존 형식 유지)
+  setTimeout(function(){ 
+    closeEmojiSlider(); 
+    // hideEmojiBar()는 안 하고 상단 메뉴만 사라지게 - 원하면 주석 처리
+    // hideEmojiBar(); 
+  }, 600);
 }
 let openedCat = null;
 let sliderOpen = false;
@@ -291,7 +329,7 @@ function renderEmoPanel(){
   let sliderHtml='';
   if(openedCat && sliderOpen && emoticonCategories[openedCat]){
     const items=emoticonCategories[openedCat].map(it=>`<div class="emoSlideItem" onclick="sendReaction('${it.full}'); closeSliderAfterSend()"><span class="e">${it.emoji}</span><span class="t">${it.text}</span></div>`).join('');
-    sliderHtml=`<div class="emojiBottomSheet ${sliderOpen?'show':''}" id="emojiSliderSheet"><div class="emojiSlider">${items}</div></div><div class="emoOverlay ${sliderOpen?'show':''}" id="emoOverlay" onclick="closeEmojiSlider(); hideEmojiBar();"></div>`;
+    sliderHtml=`<div class="emojiBottomSheet ${sliderOpen?'show':''}" id="emojiSliderSheet" onclick="hideTopMenu()"><div class="emojiSlider" onclick="event.stopPropagation()">${items}</div></div><div class="emoOverlay ${sliderOpen?'show':''}" id="emoOverlay" onclick="closeEmojiSlider();"></div>`;
   }
   const hideHint = `<span class="expandHint" onclick="event.stopPropagation(); hideEmojiBar()" style="cursor:pointer;background:#f2f2f2;padding:4px 8px;border-radius:12px;font-size:11px;margin-right:6px">← 숨기기</span>`;
   panel.innerHTML=`<div class="emojiCollapsed" id="emojiCollapsedBar">${hideHint}${collapsedTabs}</div>${sliderHtml}`;
@@ -356,7 +394,7 @@ function updateBgmSelect(){const s=document.getElementById('bgmSelect'); if(s) s
 function initBgm(){
   const p=document.getElementById('bgmPlayer');
   if(!p){console.log('bgmPlayer 없음!'); return;}
-  p.src='/'+currentTrack+'?v=29';
+  p.src='/'+currentTrack+'?v=30';
   p.volume=1;
   p.preload='auto';
   p.setAttribute('playsinline','');
@@ -389,7 +427,7 @@ function changeTrack(t){
   const p=document.getElementById('bgmPlayer');
   const was=p && !p.paused;
   if(p){ 
-    p.src='/'+t+'?v=29'; 
+    p.src='/'+t+'?v=30'; 
     if(gainNode) gainNode.gain.value = myVolume;
     p.volume=1;
     if(was) p.play().catch(function(){}); 
