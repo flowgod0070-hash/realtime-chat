@@ -3,8 +3,8 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
-<link rel="manifest" href="/manifest.json?v=37">
-<link rel="apple-touch-icon" href="/my-icon-180.png?v=37">
+<link rel="manifest" href="./manifest.json?v=37">
+<link rel="apple-touch-icon" href="./my-icon-180.png?v=37">
 <title>플로우갓의 채팅방</title>
 <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
 <meta name="theme-color" content="#ffffff">
@@ -25,7 +25,6 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Apple SD Gothic Neo','Noto Sa
 .bgmBar input[type=range]::-moz-range-track{height:6px;background:#ddd;border-radius:3px}
 .bgmBar input[type=range]::-moz-range-thumb{width:22px;height:22px;border-radius:50%;background:#000;border:none;cursor:pointer}
 .bgmBar button{padding:5px 8px;border:none;border-radius:8px;background:#fff;border:1px solid #ddd;cursor:pointer;font-size:12px}
-/* 펼침 방식 + 작은 사이즈 + 하단 슬라이더 */
 .emojiBarWrap{background:#fafafa;border-bottom:1px solid #eee;position:relative}
 .emojiCollapsed{display:flex;gap:6px;overflow-x:auto;padding:8px 10px;scrollbar-width:none;align-items:center}
 .emojiCollapsed::-webkit-scrollbar{display:none}
@@ -89,17 +88,23 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Apple SD Gothic Neo','Noto Sa
 #imgModal img{max-width:95vw;max-height:80vh;border-radius:12px}
 #imgModal .modalBtns{display:flex;gap:10px}
 #imgModal .modalBtns button{padding:10px 18px;border-radius:20px;border:none;font-size:14px;font-weight:600;cursor:pointer}
+/* 1번 콤보 - 이모지 비 */
+.emojiRain{position:fixed;top:-50px;pointer-events:none;z-index:9998;animation:emojiFall linear forwards;will-change:transform}
+@keyframes emojiFall{0%{transform:translateY(0) rotate(0deg);opacity:1}100%{transform:translateY(110vh) rotate(720deg);opacity:0}}
+/* 2번 오늘의 한마디 - 특별한 시스템 메시지 */
+.system.daily{background:linear-gradient(135deg,#FEE500 0%,#FFD60A 100%);color:#000;font-weight:700;padding:8px 14px;box-shadow:0 2px 12px rgba(254,229,0,.4);border:1px solid #FFD60A}
 </style>
 </head>
 <body>
 <script>
-if('serviceWorker' in navigator){navigator.serviceWorker.getRegistrations().then(r=>r.forEach(x=>x.unregister()));}
-if(window.caches){caches.keys().then(ks=>ks.forEach(k=>caches.delete(k)));}
+// PWA 캐시 강제 삭제 코드는 아이콘 안 나오게 만들 수 있어서 제거함
+// if('serviceWorker' in navigator){navigator.serviceWorker.getRegistrations().then(r=>r.forEach(x=>x.unregister()));}
+// if(window.caches){caches.keys().then(ks=>ks.forEach(k=>caches.delete(k)));}
 </script>
 <div class="app" id="app"></div>
 <div id="imgModal" onclick="closeModal(event)"><img id="modalImg" src=""><div class="modalBtns"><a id="modalDown" download style="text-decoration:none"><button style="background:#FEE500">📥 다운로드</button></a><button onclick="document.getElementById('imgModal').classList.remove('show')" style="background:#fff">✖ 닫기</button></div></div>
 <audio id="bgmPlayer" loop preload="auto"></audio>
-<script src="/socket.io/socket.io.js"></script>
+<script src="https://cdn.socket.io/4.7.5/socket.io.min.js"></script>
 <script>
 const appEl=document.getElementById('app');
 let socket,myInfo,roomId='main-room';
@@ -139,13 +144,13 @@ const emoticonCategories = {
   '슬픔': [
     {emoji:'😢', text:'슬퍼요', full:'😢 슬퍼요...'},
     {emoji:'😭', text:'눈물나', full:'😭 눈물이 나요...'},
-    {emoji:'🕊️', text:'위로해요', full:'🕊️ 위로해요...'},
+    {emoji:'🕊', text:'위로해요', full:'🕊 위로해요...'},
     {emoji:'🤗', text:'안아줄게', full:'🤗 안아줄게요'},
     {emoji:'💧', text:'눈물', full:'💧 같이 울어요'},
-    {emoji:'🌧️', text:'마음아파', full:'🌧️ 마음이 아파요'},
+    {emoji:'🌧', text:'마음아파', full:'🌧 마음이 아파요'},
   ],
   '사랑': [
-    {emoji:'❤️', text:'사랑해요', full:'❤️ 사랑해요!'},
+    {emoji:'❤', text:'사랑해요', full:'❤ 사랑해요!'},
     {emoji:'💕', text:'사랑해', full:'💕 사랑해요'},
     {emoji:'🫶', text:'하트줘요', full:'🫶 하트 드려요!'},
     {emoji:'💞', text:'사랑가득', full:'💞 사랑이 가득해요'},
@@ -162,11 +167,122 @@ const emoticonCategories = {
   ],
 };
 let currentEmoCat = '감사';
-const quickEmojis = ['🙏 감사해요','🙌 할렐루야','😊 기뻐요','😢 슬퍼요','❤️ 사랑해요','💪 힘내요'];
+const quickEmojis = ['🙏 감사해요','🙌 할렐루야','😊 기뻐요','😢 슬퍼요','❤ 사랑해요','💪 힘내요'];
+// ============ 1번: 같이 터지는 응원 콤보 ============
+let recentEmojiTaps = [];
+let comboCooldown = false;
+const dailyMessages = [
+  "여호와는 나의 목자시니 내게 부족함이 없으리로다 - 시 23:1",
+  "아무 것도 염려하지 말고 기도와 간구로 아뢰라 - 빌 4:6",
+  "이날은 여호와께서 정하신 것이라 즐거워하자 - 시 118:24",
+  "두려워하지 말라 내가 너와 함께 함이라 - 사 41:10",
+  "하나님이 세상을 이처럼 사랑하사 독생자를 주셨으니 - 요 3:16",
+  "내 은혜가 네게 족하도다 - 고후 12:9",
+  "감사함으로 그의 문에 들어가며 찬송함으로 - 시 100:4",
+  "너는 마음을 다하여 여호와를 신뢰하라 - 잠 3:5",
+  "여호와는 나의 빛이요 나의 구원이시니 - 시 27:1",
+  "수고하고 무거운 자들아 다 내게로 오라 - 마 11:28",
+  "모든 것이 합력하여 선을 이루느니라 - 롬 8:28",
+  "항상 기뻐하라 쉬지 말고 기도하라 범사에 감사하라 - 살전 5:16-18",
+  "여호와의 선하심을 맛보아 알지어다 - 시 34:8",
+  "사랑은 오래 참고 온유하며 시기하지 아니하며 - 고전 13:4",
+  "내가 너희를 사랑한 것 같이 너희도 서로 사랑하라 - 요 13:34",
+  "하나님은 우리의 피난처시요 힘이시니 - 시 46:1",
+  "오직 여호와를 앙망하는 자는 새 힘을 얻으리니 - 사 40:31",
+  "평안을 너희에게 끼치노니 내 평안을 너희에게 주노라 - 요 14:27",
+  "여호와를 기뻐하라 그가 네 마음의 소원을 이루어 주시리로다 - 시 37:4",
+  "너의 행사를 여호와께 맡기라 그가 이루시리라 - 잠 16:3",
+  "내게 능력 주시는 자 안에서 내가 모든 것을 할 수 있느니라 - 빌 4:13",
+  "주의 말씀은 내 발에 등이요 내 길에 빛이니이다 - 시 119:105",
+  "너희는 이 세대를 본받지 말고 마음을 새롭게 하라 - 롬 12:2",
+  "화평하게 하는 자는 복이 있나니 - 마 5:9",
+  "나의 영혼아 잠잠히 하나님만 바라라 - 시 62:1",
+  "우리는 믿음으로 행하고 보는 것으로 행하지 아니하노라 - 고후 5:7",
+  "지존자의 은밀한 곳에 거주하는 자는 전능자의 그늘 아래에 - 시 91:1",
+  "진리를 알지니 진리가 너희를 자유롭게 하리라 - 요 8:32",
+  "나의 하나님이 모든 필요를 채우시리라 - 빌 4:19",
+  "나의 도움이 천지를 지으신 여호와에게서로다 - 시 121:2",
+  "모든 눈물을 그 눈에서 닦아 주시니 다시는 사망이 없고 - 계 21:4"
+];
+function trackEmojiCombo(emoji){
+  const now = Date.now();
+  if(!emoji) return;
+  // 이모지 하나만 추출 (첫 글자)
+  const firstEmoji = Array.from(emoji)[0];
+  recentEmojiTaps.push({emoji:firstEmoji, time:now});
+  // 10초 지난 건 제거
+  recentEmojiTaps = recentEmojiTaps.filter(e => now - e.time <= 10000);
+  const sameCount = recentEmojiTaps.filter(e => e.emoji === firstEmoji).length;
+  if(sameCount >= 5 && !comboCooldown){
+    comboCooldown = true;
+    triggerEmojiRain(firstEmoji);
+    setTimeout(()=>{ addSystemDaily(`🎉 ${firstEmoji} 콤보 터졌다! 10초 안에 ${firstEmoji} 5번 모였어요!`); }, 300);
+    // 쿨다운 5초
+    setTimeout(()=>{ comboCooldown = false; recentEmojiTaps = recentEmojiTaps.filter(e => e.emoji !== firstEmoji); }, 5000);
+  }
+}
+function triggerEmojiRain(emoji){
+  // 30개 쏟아짐
+  for(let i=0;i<30;i++){
+    setTimeout(()=>{
+      const el = document.createElement('div');
+      el.className='emojiRain';
+      el.textContent=emoji;
+      el.style.left = (Math.random()*100) + 'vw';
+      el.style.animationDuration = (1.8 + Math.random()*1.5) + 's';
+      el.style.fontSize = (22 + Math.random()*28) + 'px';
+      el.style.transform = `rotate(${Math.random()*360}deg)`;
+      document.body.appendChild(el);
+      setTimeout(()=>{ if(el.parentNode) el.remove(); }, 4000);
+    }, i*70);
+  }
+  // 진동 (모바일)
+  if(navigator.vibrate) navigator.vibrate([80,40,80]);
+}
+// ============ 2번: 오늘의 한마디 ============
+function getTodayDailyMessage(){
+  const today = new Date();
+  const idx = (today.getDate() - 1) % dailyMessages.length;
+  return dailyMessages[idx];
+}
+function addSystemDaily(text){
+  const el=document.createElement('div'); 
+  el.className='system daily'; 
+  el.textContent=text; 
+  const m=document.getElementById('msgs'); 
+  if(m){ m.appendChild(el); scroll(); }
+}
+function checkDailyMessage(){
+  const todayStr = new Date().toISOString().slice(0,10);
+  const lastShown = localStorage.getItem('lastDailyMsgDate');
+  const hour = new Date().getHours();
+  // 9시 이후고 오늘 아직 안 보여줬으면 표시
+  if(hour >= 9 && lastShown !== todayStr){
+    const msg = getTodayDailyMessage();
+    setTimeout(()=>{ addSystemDaily(`☀️ 오늘의 한마디: ${msg}`); }, 1200);
+    localStorage.setItem('lastDailyMsgDate', todayStr);
+  }
+  // 자정 넘으면 체크용 (혹시 9시 이전에 들어왔다가 9시 된 경우)
+  if(lastShown !== todayStr && hour < 9){
+    // 9시까지 남은 시간 후 자동 표시 예약
+    const now = new Date();
+    const nine = new Date(); nine.setHours(9,0,5,0);
+    if(nine > now){
+      setTimeout(checkDailyMessage, nine - now + 1000);
+    }
+  }
+}
+// 매일 자정 체크
+setInterval(()=>{
+  const now = new Date();
+  if(now.getHours()===9 && now.getMinutes()===0){
+    checkDailyMessage();
+  }
+}, 60000);
 function renderLogin(){
  appEl.innerHTML=`<div class="login" style="gap:16px">
   <div style="text-align:center;margin-bottom:4px">
-    <img src="/my-icon-512.png?v=37" onerror="this.src='/my-icon-192.png?v=37'; this.onerror=null" alt="플로우갓 캐릭터" style="width:132px;height:132px;border-radius:50%;object-fit:contain;background:#FEE500;padding:10px;box-shadow:0 8px 24px rgba(0,0,0,.15);display:inline-block">
+    <img src="./my-icon-512.png?v=37" onerror="this.src='./my-icon-192.png?v=37'; this.onerror=null" alt="플로우갓 캐릭터" style="width:132px;height:132px;border-radius:50%;object-fit:contain;background:#FEE500;padding:10px;box-shadow:0 8px 24px rgba(0,0,0,.15);display:inline-block">
   </div>
   <h1 style="text-align:center;font-size:22px">🐣 플로우갓의 채팅방 입장</h1>
   <input id="nameIn" placeholder="내 이름" oninput="checkAdminInput()" />
@@ -210,19 +326,18 @@ function checkAdminInput(){
 }
 function enter(){
  const name=document.getElementById('nameIn').value.trim(); if(!name) return alert('이름 입력');
- // 플로우갓이면 비밀번호 검증
  if(name===ADMIN_NAME){
    var pwEl=document.getElementById('adminPwIn');
    var pw=pwEl?pwEl.value:'';
    if(pw!==ADMIN_PW){
-     alert('🚫 방장 비밀번호가 틀렸습니다!\n플로우갓 이름은 관리자만 사용할 수 있습니다.');
+     alert('🚫 방장 비밀번호가 틀렸습니다!\\n플로우갓 이름은 관리자만 사용할 수 있습니다.');
      if(pwEl){ pwEl.value=''; pwEl.focus(); }
      return;
    }
  }
  const room=document.getElementById('roomIn').value.trim()||'main-room'; roomId=room;
  myInfo={username:name,character:window._sel(),roomId,adminPassword: (name===ADMIN_NAME?ADMIN_PW:'')};
- isHost = name.trim() === '플로우갓'; // 플로우갓만 방장
+ isHost = name.trim() === '플로우갓';
   localStorage.removeItem('isHost-'+roomId);
  initSocket(); renderChat(); initBgm();
 }
@@ -235,7 +350,23 @@ function playEnterSound(){
  }catch(e){}
 }
 function initSocket(){
- socket=io();
+ // ★ 중요: GitHub Pages에서는 socket.io 서버가 없으니, 실제 서버 주소로 바꿔야 함
+ // 예: io('https://your-server.onrender.com')
+ // 지금은 테스트용으로 자동 연결 시도, 실패하면 안내 메시지 표시
+ try {
+   // 만약 server.js를 Render 등에 배포했다면 아래 주석을 풀고 주소 넣기
+   // socket = io('https://YOUR_RENDER_URL.onrender.com');
+   socket = io(); // 로컬 테스트용. Pages에서는 연결 실패할 수 있음
+   
+   socket.on('connect_error', (err)=>{
+     console.log('socket connect error', err);
+     addSystem('⚠️ 채팅 서버에 연결할 수 없어요. server.js를 Render 등에 배포하고 io() 주소를 수정해야 해요.');
+   });
+ } catch(e) {
+   console.log('io not ready', e);
+   addSystem('⚠️ socket.io 로드 실패. CDN 확인 필요');
+   return;
+ }
  socket.emit('joinRoom',myInfo);
  socket.on('chatMessage',d=>addMsg(d));
  socket.on('fileMessage',d=>addFileMsg(d));
@@ -243,7 +374,7 @@ function initSocket(){
  socket.on('systemMessage',txt=>{addSystem(txt); if((txt.includes('들어왔')||txt.includes('입장')||txt.includes('입장'))&&!txt.includes(myInfo.username)) playEnterSound();});
  socket.on('userJoined',data=>{if(data.username!==myInfo.username){addSystem(`🔔 ${data.character||'🐣'} ${data.username}님이 들어왔습니다.`); playEnterSound();}});
  socket.on('userLeft',data=>addSystem(`👋 ${data.username}님이 나갔습니다.`));
- socket.on('bgmTrackChange',track=>{if(bgmList.includes(track)){currentTrack=track;const p=document.getElementById('bgmPlayer');const was=!p.paused;p.src='/'+track+'?v=37';localStorage.setItem('lastBgmTrack',track);updateBgmSelect();if(was)p.play().catch(()=>{});addSystem(`🎵 BGM 변경: ${track}`);}});
+ socket.on('bgmTrackChange',track=>{if(bgmList.includes(track)){currentTrack=track;const p=document.getElementById('bgmPlayer');const was=!p.paused;p.src='./'+track+'?v=37';localStorage.setItem('lastBgmTrack',track);updateBgmSelect();if(was)p.play().catch(()=>{});addSystem(`🎵 BGM 변경: ${track}`);}});
 }
 function renderChat(){
  var isAdmin = myInfo.username===ADMIN_NAME;
@@ -260,18 +391,17 @@ function renderChat(){
  ti.addEventListener('compositionend',()=>setTimeout(()=>isComposing=false,80));
  ti.addEventListener('keydown',e=>{if(e.key==='Enter'){if(isComposing||e.isComposing||e.keyCode===229) return; e.preventDefault(); sendText();}});
  renderBgmBar();
+ checkDailyMessage();
  return;
 }
 function renderBgmBar(){
  const w=document.getElementById('bgmBarWrap'); if(!w) return;
  const options=bgmList.map(t=>`<option value="${t}" ${t===currentTrack?'selected':''}>${t.replace('.mp3','')} ${t===currentTrack?'▶':''}</option>`).join('');
  const hostCtrl=isHost?`<select id="bgmSelect" onchange="changeTrack(this.value)">${options}</select>`:`<span style="font-size:11px;background:#fff;padding:4px 8px;border-radius:8px">🎵 ${currentTrack}</span>`;
- // 일반 유저는 볼륨 슬라이더 제거 (방장만)
  const volHtml = isHost ? `<span style="margin-left:auto">🔊 <span id="volLabel">${Math.round(myVolume*100)}%</span></span><input type="range" id="volSlider" min="0" max="1" step="0.01" value="${myVolume}" oninput="changeMyVolume(this.value)" style="flex:1; accent-color:#000; max-width:90px"><button onclick="toggleBgmMute()">🔇</button>` : ``;
  w.innerHTML=`<div class="bgmBar"><button id="bgmPlayBtn" onclick="toggleBgm()">▶ 재생</button>${hostCtrl}${volHtml}<button onclick="toggleEnterSound()" id="enterBtn" style="margin-left:${isHost?'':'auto'}">${enterSoundEnabled?'🔔':'🔕'}</button></div><div style="font-size:10px;color:#888">${isHost?'👑 방장 | 볼륨조절 가능 | BGM 5곡 변경 가능':'일반 유저 | BGM 감상만 | 알람 '+ (enterSoundEnabled?'ON':'OFF')}</div>`;
 }
 function showFloatingEmoji(emoji){
-  // 항상 화면 중앙에 위치 - body에 추가 (fixed position)
   var old = document.querySelectorAll('.floatingEmoji');
   old.forEach(function(o){ o.remove(); });
   var el = document.createElement('div');
@@ -300,41 +430,34 @@ function hideTopMenu(){
     bgmBarWrap.style.padding='0';
     setTimeout(function(){ bgmBarWrap.style.display='none'; }, 350);
   }
-  // BGM bar only hide, header stays
 }
 function saveChatLog(){
-  // 관리자 모드에서만 저장 가능
   if(myInfo.username !== ADMIN_NAME){
     alert('🚫 저장 기능은 관리자(플로우갓)만 사용할 수 있습니다!');
     return;
   }
-  // 구글 드라이브 폴더 ID (자동 연동된 폴더)
   window.GDRIVE_FOLDER_ID = '1hYEQHAM4QYNmclKbNPV2oOMUHaWDnkfH';
   window.GDRIVE_FOLDER_LINK = 'https://drive.google.com/drive/folders/1hYEQHAM4QYNmclKbNPV2oOMUHaWDnkfH';
   try{
     var msgsEl = document.getElementById('msgs');
     var allMsgs = msgsEl ? msgsEl.querySelectorAll('.msg') : [];
-    var log = '플로우갓의 채팅방 - 채팅 로그\n';
-    log += '저장일시: ' + new Date().toLocaleString('ko-KR') + '\n';
-    log += '참여자: ' + (myInfo.name || '익명') + '\n';
-    log += '방: ' + (myInfo.room || 'main-room') + '\n';
-    log += '========================================\n\n';
-    
+    var log = '플로우갓의 채팅방 - 채팅 로그\\n';
+    log += '저장일시: ' + new Date().toLocaleString('ko-KR') + '\\n';
+    log += '참여자: ' + (myInfo.name || '익명') + '\\n';
+    log += '방: ' + (myInfo.room || 'main-room') + '\\n';
+    log += '========================================\\n\\n';
     if(allMsgs.length === 0){
-      log += '채팅 내용이 없습니다.\n';
+      log += '채팅 내용이 없습니다.\\n';
     } else {
       allMsgs.forEach(function(m, idx){
         var text = m.innerText || m.textContent || '';
         var time = new Date().toLocaleTimeString('ko-KR');
-        log += '[' + time + '] ' + text + '\n';
+        log += '[' + time + '] ' + text + '\\n';
       });
     }
-    
-    log += '\n========================================\n';
-    log += '총 메시지: ' + allMsgs.length + '개\n';
-    log += '생성: 플로우갓의 채팅방 v37\n';
-    
-    // 1. 로컬 다운로드
+    log += '\\n========================================\\n';
+    log += '총 메시지: ' + allMsgs.length + '개\\n';
+    log += '생성: 플로우갓의 채팅방 v37\\n';
     var blob = new Blob([log], {type: 'text/plain;charset=utf-8'});
     var url = URL.createObjectURL(blob);
     var a = document.createElement('a');
@@ -345,51 +468,16 @@ function saveChatLog(){
     a.click();
     document.body.removeChild(a);
     URL.revokeObjectURL(url);
-    
-    // 2. 구글 드라이브 저장 안내
-    console.log('Chat log prepared for Google Drive:', fileName);
-    
-    // 알림 + 구글 드라이브 폴더 링크
     var notice = document.createElement('div');
     notice.style.cssText = 'position:fixed;left:50%;top:25%;transform:translate(-50%,-50%);background:#000;color:#fff;padding:16px 22px;border-radius:14px;font-size:13px;z-index:9999;box-shadow:0 8px 32px rgba(0,0,0,.3);text-align:center;line-height:1.6;max-width:300px';
     notice.innerHTML = '📄 채팅 로그 저장!<br><span style="font-size:12px;font-weight:700;color:#FEE500">' + fileName + '</span><br><a href="https://drive.google.com/drive/folders/1hYEQHAM4QYNmclKbNPV2oOMUHaWDnkfH" target="_blank" style="color:#4FC3F7;font-size:11px;text-decoration:underline">📁 드라이브 폴더 열기</a><br><span style="font-size:10px;opacity:.7">자동 연동 폴더에 저장됨</span>';
     document.body.appendChild(notice);
     setTimeout(function(){ if(notice.parentNode) notice.remove(); }, 5000);
-    
     return log;
   } catch(e){
     console.error('Save failed', e);
     alert('저장 실패: ' + e.message);
   }
-}
-function saveToGoogleDocs(){
-  var log = saveChatLog();
-  // 구글 드라이브 연동을 위한 데이터 준비
-  var gdriveData = {
-    folderName: '플로우갓의 채팅방 로그',
-    fileName: '채팅_' + new Date().toISOString().slice(0,10) + '.txt',
-    content: log,
-    mimeType: 'text/plain'
-  };
-  console.log('Ready for Google Drive upload:', gdriveData);
-  
-  // 실제 구글 드라이브 업로드는 서버에서 처리 (google-drive-write 스킬 사용)
-  // 클라이언트에서는 로컬 저장만, 서버 API 호출은 추후 구현
-  fetch('/api/saveToDrive', {
-    method: 'POST',
-    headers: {'Content-Type': 'application/json'},
-    body: JSON.stringify(gdriveData)
-  }).then(function(r){ return r.json(); })
-  .then(function(data){
-    console.log('Drive save result:', data);
-    if(data.success){
-      alert('✅ 구글 드라이브 저장 완료!\n폴더: 플로우갓의 채팅방 로그');
-    } else {
-      console.log('Drive API not yet configured, local save only');
-    }
-  }).catch(function(err){
-    console.log('Drive API not configured yet - local save done', err);
-  });
 }
 function showTopMenu(){
   var bgmBarWrap = document.getElementById('bgmBarWrap');
@@ -419,13 +507,11 @@ function handleMessagesClick(e){
   if(sliderOpen){ closeEmojiSlider(); }
 }
 function handleEmojiCardClick(emoji, fullText){
-  // 1. 서브메뉴 내용 챗방에 보여주기 (중앙 팝업 + 채팅 전송)
   showFloatingEmoji(emoji);
+  trackEmojiCombo(emoji);
   if(fullText){
-    // 채팅에 표시하고 사라지는 페이드 효과는 showFloatingEmoji가 담당
     socket.emit('chatMessage',{...myInfo,text:fullText});
   }
-  // 2. 하얀색 서브메뉴 완전히 사라지게!
   forceHideWhiteSubmenu();
   closeEmojiSlider();
 }
@@ -435,12 +521,10 @@ function renderEmoPanel(){
   const panel=document.getElementById('emoPanel');
   if(!panel) return;
   const cats=Object.keys(emoticonCategories);
-  // 1단: 작게 펼침 방식 - 카테고리 6개 작은 원형 버튼
   const collapsedTabs=cats.map(c=>{
     const active=openedCat===c && sliderOpen ? 'active' : '';
     return `<button class="catMini ${active}" onclick="event.stopPropagation(); toggleSecondTier('${c}')" title="${c}">${getCatIcon(c)}</button>`;
   }).join('');
-  // 2단: 하단 슬라이더 형식 - 선택된 카테고리 이모지들 가로 슬라이더
   let sliderHtml='';
   if(openedCat && sliderOpen && emoticonCategories[openedCat]){
     const items=emoticonCategories[openedCat].map(it=>`<div class="emoSlideItem" onclick="handleEmojiCardClick('${it.emoji}','${it.full}')"><span class="e">${it.emoji}</span><span class="t">${it.text}</span></div>`).join('');
@@ -451,12 +535,11 @@ function renderEmoPanel(){
   panel.innerHTML=`<div class="emojiCollapsed" id="emojiCollapsedBar">${hideHint}${collapsedTabs}</div>${sliderHtml}`;
 }
 function getCatIcon(cat){
-  const icons={'감사':'🙏','찬양':'🙌','기쁨':'😊','슬픔':'😢','사랑':'❤️','응원':'💪'};
+  const icons={'감사':'🙏','찬양':'🙌','기쁨':'😊','슬픔':'😢','사랑':'❤','응원':'💪'};
   return icons[cat]||'✨';
 }
 function toggleSecondTier(cat){
   if(openedCat===cat && sliderOpen){
-    // 같은 카테고리 다시 누르면 닫기
     closeEmojiSlider();
   } else {
     openedCat=cat;
@@ -466,7 +549,6 @@ function toggleSecondTier(cat){
 }
 function closeEmojiSlider(){
   sliderOpen=false;
-  // 하얀색 서브메뉴 완전히 사라지게
   var sheet=document.getElementById('emojiSliderSheet');
   var overlay=document.getElementById('emoOverlay');
   if(sheet){
@@ -483,7 +565,6 @@ function closeEmojiSlider(){
   if(overlay){
     overlay.classList.remove('show');
   }
-  // 카테고리 active 제거
   openedCat=null;
 }
 function forceHideWhiteSubmenu(){
@@ -508,14 +589,6 @@ function showEmojiBar(){
   const restore = document.getElementById('emojiRestoreBtn');
   if(restore) restore.classList.remove('show');
 }
-function closeSliderAfterSend(){
-  // 전송 후에도 슬라이더 유지 - 연속 선택 편하게
-  // 바로 닫고 싶으면 아래 주석 해제
-  // setTimeout(()=>closeEmojiSlider(), 800);
-}
-function switchEmoCat(cat){ toggleSecondTier(cat); }
-function toggleEmoPanel(){ toggleSecondTier('감사'); }
-function closeAfterSend(){}
 function ensureAudioContext(){
   try{
     if(!audioCtx){
@@ -537,13 +610,12 @@ function updateBgmSelect(){const s=document.getElementById('bgmSelect'); if(s) s
 function initBgm(){
   const p=document.getElementById('bgmPlayer');
   if(!p){console.log('bgmPlayer 없음!'); return;}
-  p.src='/'+currentTrack+'?v=37';
+  p.src='./'+currentTrack+'?v=37';
   p.volume=1;
   p.preload='auto';
   p.setAttribute('playsinline','');
   p.setAttribute('webkit-playsinline','');
   console.log('BGM init',currentTrack,myVolume);
-  // Web Audio for iPhone volume control
   ensureAudioContext();
   if(gainNode) gainNode.gain.value = myVolume;
 }
@@ -556,7 +628,6 @@ function toggleBgm(){
     p.play().then(()=>{
       const btn=document.getElementById('bgmPlayBtn');
       if(btn) btn.textContent='⏸ 정지';
-      console.log('BGM playing vol',myVolume);
     }).catch(function(e){ alert('재생 버튼 다시 눌러주세요! (아이폰은 직접 눌러야 재생돼요)'); console.log(e); });
   } else {
     p.pause();
@@ -570,7 +641,7 @@ function changeTrack(t){
   const p=document.getElementById('bgmPlayer');
   const was=p && !p.paused;
   if(p){ 
-    p.src='/'+t+'?v=37'; 
+    p.src='./'+t+'?v=37'; 
     if(gainNode) gainNode.gain.value = myVolume;
     p.volume=1;
     if(was) p.play().catch(function(){}); 
@@ -582,15 +653,12 @@ function changeTrack(t){
 function changeMyVolume(v){
   myVolume=parseFloat(v);
   localStorage.setItem('myBgmVolume',myVolume);
-  // iPhone: Web Audio API GainNode로 볼륨 조절 (audio.volume은 아이폰에서 안 먹음)
   ensureAudioContext();
   if(gainNode){
     try{ gainNode.gain.value = myVolume; }catch(e){}
   }
-  // PC 백업: 일반 audio.volume도 설정
   const p=document.getElementById('bgmPlayer');
   if(p){ try{ p.volume=1; p.muted=false; }catch(e){} }
-  console.log('volume changed to',myVolume,'gain',gainNode?gainNode.gain.value:'no gain');
   const label=document.getElementById('volLabel');
   if(label) label.textContent=Math.round(myVolume*100)+'%';
   const slider=document.getElementById('volSlider');
@@ -610,7 +678,9 @@ function toggleBgmMute(){
   }
 }
 function esc(s){return s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');}
-function addMsg(d){const me=d.username===myInfo.username; const el=document.createElement('div'); el.className=me?'msg me':'msg other'; el.innerHTML=`<div class="sender">${d.character||'🐣'} ${esc(d.username)}</div><div>${esc(d.text)}</div><div class="meta">${new Date(d.id||Date.now()).toLocaleTimeString('ko-KR',{hour:'2-digit',minute:'2-digit'})}</div>`; document.getElementById('msgs').appendChild(el); scroll();}
+function addMsg(d){const me=d.username===myInfo.username; 
+  try{ const firstChar = d.text ? Array.from(d.text.trim())[0] : ''; if(firstChar) trackEmojiCombo(firstChar); }catch(e){} 
+  const el=document.createElement('div'); el.className=me?'msg me':'msg other'; el.innerHTML=`<div class="sender">${d.character||'🐣'} ${esc(d.username)}</div><div>${esc(d.text)}</div><div class="meta">${new Date(d.id||Date.now()).toLocaleTimeString('ko-KR',{hour:'2-digit',minute:'2-digit'})}</div>`; document.getElementById('msgs').appendChild(el); scroll();}
 function addSystem(t){const el=document.createElement('div'); el.className='system'; el.textContent=t; const m=document.getElementById('msgs'); if(m){m.appendChild(el); scroll();}}
 function addFileMsg(d){
  const me=d.username===myInfo.username;
@@ -627,10 +697,11 @@ function addFileMsg(d){
 }
 function addVoiceMsg(d){const me=d.username===myInfo.username; const el=document.createElement('div'); el.className=me?'msg me':'msg other'; el.innerHTML=`<div class="sender">${d.character||'🐣'} ${esc(d.username)}</div><div style="display:flex;align-items:center;gap:8px"><button onclick="new Audio('${d.dataUrl}').play()" style="padding:6px 12px;border-radius:20px;border:none;background:#fff">▶ ${d.duration||'?'}s 음성</button></div>`; document.getElementById('msgs').appendChild(el); scroll();}
 function scroll(){const m=document.getElementById('msgs'); if(m) m.scrollTop=m.scrollHeight;}
-function sendText(){if(isComposing) return; const inp=document.getElementById('textIn'); let t=inp.value.trim(); if(!t) return; t=t.replace(/\s+/g,' '); socket.emit('chatMessage',{...myInfo,text:t}); inp.value=''; inp.focus();}
+function sendText(){if(isComposing) return; const inp=document.getElementById('textIn'); let t=inp.value.trim(); if(!t) return; t=t.replace(/\\s+/g,' '); socket.emit('chatMessage',{...myInfo,text:t}); inp.value=''; inp.focus();}
 function sendReaction(txt){
   var first = txt.trim().split(' ')[0] || '😊';
   showFloatingEmoji(first);
+  trackEmojiCombo(first);
 socket.emit('chatMessage',{...myInfo,text:txt});}
 function sendFile(f){if(!f) return; if(f.size>10*1024*1024) return alert('10MB 이하만 가능해요'); const r=new FileReader(); r.onload=()=>{socket.emit('fileMessage',{...myInfo,fileName:f.name,size:f.size,dataUrl:r.result});}; r.readAsDataURL(f); document.getElementById('fileIn').value='';}
 function openModal(url,name){document.getElementById('modalImg').src=url; document.getElementById('modalDown').href=url; document.getElementById('modalDown').download=name; document.getElementById('imgModal').classList.add('show');}
