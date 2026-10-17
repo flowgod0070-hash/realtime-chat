@@ -25,7 +25,7 @@ const publicPath = path.join(__dirname, 'public');
 app.use(express.static(publicPath, { maxAge:0, etag:false }));
 app.use(express.static(__dirname, { maxAge:0, etag:false }));
 
-app.get('/health', (req,res)=>res.send('ok v35 - gdrive auto'));
+app.get('/health', (req,res)=>res.send('ok v37 - gdrive auto'));
 
 app.get('/', (req,res)=>{
   const p = path.join(publicPath, 'index.html');
@@ -39,7 +39,7 @@ app.get('/', (req,res)=>{
   });
 });
 
-// Google Drive auto-save endpoint (v35)
+// Google Drive auto-save endpoint (v37)
 const ADMIN_NAME='플로우갓';
 const ADMIN_PW='0325';
 const GDRIVE_FOLDER_ID = '1hYEQHAM4QYNmclKbNPV2oOMUHaWDnkfH';
@@ -137,4 +137,4 @@ io.on('connection', (socket)=>{
 });
 
 const PORT = process.env.PORT || 10000;
-server.listen(PORT, ()=>console.log(`플로우갓의 채팅방 v35 Live on ${PORT} - 방장=플로우갓만 + GDrive 폴더:${GDRIVE_FOLDER_ID}`));
+server.listen(PORT, ()=>console.log(`플로우갓의 채팅방 v37 Live on ${PORT} - 방장=플로우갓만 + GDrive 폴더:${GDRIVE_FOLDER_ID}`));
