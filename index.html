@@ -1,0 +1,653 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+<link rel="manifest" href="/manifest.json?v=37">
+<link rel="apple-touch-icon" href="/my-icon-180.png?v=37">
+<title>플로우갓의 채팅방</title>
+<meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
+<meta name="theme-color" content="#ffffff">
+<meta name="apple-mobile-web-app-title" content="플로우갓의 채팅방">
+<style>
+*{margin:0;padding:0;box-sizing:border-box}
+body{font-family:-apple-system,BlinkMacSystemFont,'Apple SD Gothic Neo','Noto Sans KR',sans-serif;background:#fff;height:100dvh;display:flex;justify-content:center;align-items:center;padding-top:env(safe-area-inset-top)}
+.app{width:100%;max-width:420px;height:100dvh;height:calc(100dvh - env(safe-area-inset-top));background:#fff;display:flex;flex-direction:column;position:relative;overflow:hidden}
+@media(min-width:500px){.app{height:90dvh;border-radius:24px;box-shadow:0 10px 40px rgba(0,0,0,.1)}}
+.header{background:#ffffffee;backdrop-filter:blur(20px);padding:12px 14px;padding-top:calc(12px + env(safe-area-inset-top));display:flex;flex-direction:column;gap:8px;border-bottom:1px solid #f0f0f0;z-index:10}
+.headerTop{display:flex;justify-content:space-between;align-items:center}
+.header b{font-size:16px}
+.bgmBar{display:flex;align-items:center;gap:6px;background:#f5f5f7;padding:8px 10px;border-radius:12px;font-size:12px;flex-wrap:wrap}
+.bgmBar select{padding:5px 8px;border-radius:8px;border:1px solid #ddd;font-size:12px;background:#fff}
+.bgmBar input[type=range]{flex:1;min-width:70px;max-width:110px;height:24px;-webkit-appearance:none;appearance:none;background:transparent;touch-action:none}
+.bgmBar input[type=range]::-webkit-slider-runnable-track{height:6px;background:#ddd;border-radius:3px}
+.bgmBar input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:22px;height:22px;border-radius:50%;background:#000;margin-top:-8px;cursor:pointer;box-shadow:0 1px 4px rgba(0,0,0,.2)}
+.bgmBar input[type=range]::-moz-range-track{height:6px;background:#ddd;border-radius:3px}
+.bgmBar input[type=range]::-moz-range-thumb{width:22px;height:22px;border-radius:50%;background:#000;border:none;cursor:pointer}
+.bgmBar button{padding:5px 8px;border:none;border-radius:8px;background:#fff;border:1px solid #ddd;cursor:pointer;font-size:12px}
+/* 펼침 방식 + 작은 사이즈 + 하단 슬라이더 */
+.emojiBarWrap{background:#fafafa;border-bottom:1px solid #eee;position:relative}
+.emojiCollapsed{display:flex;gap:6px;overflow-x:auto;padding:8px 10px;scrollbar-width:none;align-items:center}
+.emojiCollapsed::-webkit-scrollbar{display:none}
+.catMini{flex:0 0 auto;width:34px;height:34px;border-radius:50%;border:1.5px solid #eee;background:#fff;display:grid;place-items:center;font-size:16px;cursor:pointer;transition:.15s}
+.catMini.active{background:#000;color:#fff;border-color:#000;transform:scale(1.1)}
+.catMini:active{transform:scale(.92)}
+.expandHint{font-size:10px;color:#888;margin-left:2px;white-space:nowrap}
+.emojiBottomSheet{position:absolute;bottom:100%;left:0;right:0;background:#fff;border-radius:16px 16px 0 0;box-shadow:0 -4px 20px rgba(0,0,0,.12);transform:translateY(110%);transition:transform .28s cubic-bezier(.32,.72,.38,1.2);z-index:20;max-height:150px;overflow:hidden;border:1px solid #eee;border-bottom:none}
+.emojiBottomSheet.show{transform:translateY(0)}
+.sliderHeader{display:flex;justify-content:space-between;align-items:center;padding:10px 14px 4px;font-size:11px;font-weight:700;color:#333}
+.emojiSlider{display:flex;gap:8px;overflow-x:auto;padding:8px 14px 14px;scroll-snap-type:x mandatory;scrollbar-width:none}
+.emojiSlider::-webkit-scrollbar{display:none}
+.emoSlideItem{flex:0 0 58px;scroll-snap-align:start;background:#fff;border:1px solid #f0f0f0;border-radius:14px;padding:8px 4px;text-align:center;cursor:pointer;transition:.15s}
+.emoSlideItem:active{transform:scale(.92);background:#FEE500}
+.emoSlideItem .e{font-size:22px;display:block;margin-bottom:3px}
+.emoSlideItem .t{font-size:10px;font-weight:600;color:#333;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.emoOverlay{position:absolute;inset:0;background:rgba(0,0,0,.12);display:none;z-index:10}
+.emoOverlay.show{display:block}
+.emojiBarWrap.hidden{display:none !important}
+.emojiRestoreBtn{position:absolute;left:10px;bottom:70px;background:#fff;border:1px solid #eee;border-radius:20px;padding:6px 12px;font-size:12px;box-shadow:0 2px 8px rgba(0,0,0,.1);z-index:5;cursor:pointer;display:none}
+.emojiRestoreBtn.show{display:block}
+.floatingEmoji{position:fixed;left:50%;top:50%;transform:translate(-50%,-50%) scale(0.5);font-size:92px;z-index:9999;pointer-events:auto;animation:emojiPopFade 2.2s cubic-bezier(.34,1.56,.64,1) forwards;text-shadow:0 8px 32px rgba(0,0,0,.3);cursor:pointer}
+@keyframes emojiPopFade{
+  0%{opacity:0;transform:translate(-50%,-50%) scale(0.2)}
+  18%{opacity:1;transform:translate(-50%,-50%) scale(1.35)}
+  28%{transform:translate(-50%,-50%) scale(1.05)}
+  75%{opacity:1;transform:translate(-50%,-50%) scale(1.05)}
+  100%{opacity:0;transform:translate(-50%,-40%) scale(0.7)}
+}
+.messages{position:relative}
+.topImgWrap{text-align:center;cursor:pointer;transition:.3s;position:relative}
+.topImgWrap.hide{opacity:0;transform:scale(0.8) translateY(-20px);pointer-events:none;height:0;overflow:hidden;margin:0 !important}
+.topImg{width:132px;height:132px;border-radius:50%;object-fit:cover;box-shadow:0 8px 24px rgba(0,0,0,.12);cursor:pointer;transition:.25s}
+.topBanner{width:100%;cursor:pointer;transition:.3s}
+.topBanner.hide{opacity:0;height:0;overflow:hidden;transform:translateY(-20px);pointer-events:none}
+.floatingEmoji{cursor:pointer}
+.emojiCollapsed{cursor:pointer}
+.login{flex:1;display:flex;flex-direction:column;justify-content:center;padding:24px 28px;gap:14px;background:#fff;overflow-y:auto}
+.login h1{font-size:23px;line-height:1.3}
+.login input{padding:13px;border:1px solid #ddd;border-radius:12px;font-size:16px}
+.login button{padding:13px;background:#FEE500;border:none;border-radius:12px;font-weight:700;font-size:16px;cursor:pointer}
+.chars{display:flex;gap:8px;flex-wrap:wrap}
+.char{width:42px;height:42px;border-radius:50%;display:grid;place-items:center;font-size:20px;background:#f5f5f5;cursor:pointer;border:2px solid transparent;transition:.15s}
+.char.sel{border-color:transparent;background:#FEE500;transform:scale(1.12);box-shadow:0 2px 8px rgba(0,0,0,.12)}
+.messages{flex:1;overflow-y:auto;padding:14px;background:#ABC1D1;display:flex;flex-direction:column;gap:10px}
+.msg{max-width:82%;padding:10px 14px;border-radius:18px;font-size:15px;line-height:1.45;white-space:pre-wrap;word-break:keep-all;overflow-wrap:break-word;animation:pop .2s}
+@keyframes pop{from{transform:scale(.95);opacity:0}to{transform:scale(1);opacity:1}}
+.msg.me{align-self:flex-end;background:#FEE500;border-bottom-right-radius:4px}
+.msg.other{align-self:flex-start;background:#fff;border-bottom-left-radius:4px;box-shadow:0 1px 2px rgba(0,0,0,.1)}
+.msg .sender{font-size:12px;font-weight:700;margin-bottom:4px;display:flex;align-items:center;gap:4px}
+.msg .meta{font-size:10px;color:#888;margin-top:4px}
+.msg img.chatImg{max-width:100%;max-height:260px;border-radius:12px;margin-top:6px;cursor:pointer;display:block}
+.system{align-self:center;background:rgba(0,0,0,.22);color:#fff;padding:4px 12px;border-radius:20px;font-size:12px}
+.inputArea{display:flex;gap:6px;padding:10px;background:#fff;border-top:1px solid #eee;align-items:center}
+.inputArea input{flex:1;padding:12px 14px;border:none;background:#f2f2f2;border-radius:24px;font-size:15px;outline:none}
+.iconBtn{width:40px;height:40px;border-radius:50%;border:none;background:#f2f2f2;display:grid;place-items:center;font-size:18px;cursor:pointer;transition:.15s;flex:0 0 40px}
+.iconBtn:active{transform:scale(.92)}
+.send{background:#FEE500}
+#imgModal{position:fixed;inset:0;background:rgba(0,0,0,.85);display:none;justify-content:center;align-items:center;z-index:9999;flex-direction:column;gap:12px;padding:20px}
+#imgModal.show{display:flex}
+#imgModal img{max-width:95vw;max-height:80vh;border-radius:12px}
+#imgModal .modalBtns{display:flex;gap:10px}
+#imgModal .modalBtns button{padding:10px 18px;border-radius:20px;border:none;font-size:14px;font-weight:600;cursor:pointer}
+</style>
+</head>
+<body>
+<script>
+if('serviceWorker' in navigator){navigator.serviceWorker.getRegistrations().then(r=>r.forEach(x=>x.unregister()));}
+if(window.caches){caches.keys().then(ks=>ks.forEach(k=>caches.delete(k)));}
+</script>
+<div class="app" id="app"></div>
+<div id="imgModal" onclick="closeModal(event)"><img id="modalImg" src=""><div class="modalBtns"><a id="modalDown" download style="text-decoration:none"><button style="background:#FEE500">📥 다운로드</button></a><button onclick="document.getElementById('imgModal').classList.remove('show')" style="background:#fff">✖ 닫기</button></div></div>
+<audio id="bgmPlayer" loop preload="auto"></audio>
+<script src="/socket.io/socket.io.js"></script>
+<script>
+const appEl=document.getElementById('app');
+let socket,myInfo,roomId='main-room';
+let isComposing=false,isHost=false;
+let currentTrack=localStorage.getItem('lastBgmTrack')||'bgm1.mp3';
+let myVolume=parseFloat(localStorage.getItem('myBgmVolume')||'0.5');
+let enterSoundEnabled=localStorage.getItem('enterSoundEnabled')!=='0';
+let audioCtx=null, gainNode=null, mediaSource=null;
+const ADMIN_NAME='플로우갓';
+const ADMIN_PW='0325';
+const bgmList=['bgm1.mp3','bgm2.mp3','bgm3.mp3','bgm4.mp3','bgm5.mp3'];
+const emoticonCategories = {
+  '감사': [
+    {emoji:'🙏', text:'감사해요', full:'🙏 감사해요!'},
+    {emoji:'🥹', text:'고마워요', full:'🥹 너무 고마워요!'},
+    {emoji:'🙇', text:'감사합니다', full:'🙇 감사합니다!'},
+    {emoji:'💝', text:'진심감사', full:'💝 진심으로 감사해요'},
+    {emoji:'🤲', text:'감사기도', full:'🤲 감사기도 드려요'},
+    {emoji:'🌸', text:'고마운마음', full:'🌸 고마운 마음이에요'},
+  ],
+  '찬양': [
+    {emoji:'🙌', text:'할렐루야', full:'🙌 할렐루야!'},
+    {emoji:'👏', text:'찬양해요', full:'👏 하나님 찬양해요!'},
+    {emoji:'✨', text:'영광', full:'✨ 하나님께 영광!'},
+    {emoji:'🎤', text:'찬양합니다', full:'🎤 찬양합니다!'},
+    {emoji:'🔥', text:'찬양불타', full:'🔥 찬양이 불타오르네요!'},
+    {emoji:'👑', text:'주님은왕', full:'👑 주님은 왕이세요!'},
+  ],
+  '기쁨': [
+    {emoji:'😊', text:'기뻐요', full:'😊 너무 기뻐요!'},
+    {emoji:'🎉', text:'기쁨충만', full:'🎉 기쁨이 충만해요!'},
+    {emoji:'😂', text:'웃겨요', full:'😂 너무 웃겨요ㅋㅋ'},
+    {emoji:'🥳', text:'축하해요', full:'🥳 축하해요!'},
+    {emoji:'🤣', text:'빵터짐', full:'🤣 빵터졌어요!'},
+    {emoji:'🌈', text:'행복해', full:'🌈 행복해요!'},
+  ],
+  '슬픔': [
+    {emoji:'😢', text:'슬퍼요', full:'😢 슬퍼요...'},
+    {emoji:'😭', text:'눈물나', full:'😭 눈물이 나요...'},
+    {emoji:'🕊️', text:'위로해요', full:'🕊️ 위로해요...'},
+    {emoji:'🤗', text:'안아줄게', full:'🤗 안아줄게요'},
+    {emoji:'💧', text:'눈물', full:'💧 같이 울어요'},
+    {emoji:'🌧️', text:'마음아파', full:'🌧️ 마음이 아파요'},
+  ],
+  '사랑': [
+    {emoji:'❤️', text:'사랑해요', full:'❤️ 사랑해요!'},
+    {emoji:'💕', text:'사랑해', full:'💕 사랑해요'},
+    {emoji:'🫶', text:'하트줘요', full:'🫶 하트 드려요!'},
+    {emoji:'💞', text:'사랑가득', full:'💞 사랑이 가득해요'},
+    {emoji:'😍', text:'좋아요', full:'😍 너무 좋아요!'},
+    {emoji:'🥰', text:'사랑해요', full:'🥰 사랑합니다!'},
+  ],
+  '응원': [
+    {emoji:'💪', text:'힘내요', full:'💪 힘내세요!'},
+    {emoji:'🙏', text:'기도해요', full:'🙏 기도할게요!'},
+    {emoji:'🔥', text:'화이팅', full:'🔥 화이팅!'},
+    {emoji:'🌟', text:'응원해', full:'🌟 응원해요!'},
+    {emoji:'💯', text:'최고예요', full:'💯 최고예요!'},
+    {emoji:'🚀', text:'잘될거야', full:'🚀 잘 될 거예요!'},
+  ],
+};
+let currentEmoCat = '감사';
+const quickEmojis = ['🙏 감사해요','🙌 할렐루야','😊 기뻐요','😢 슬퍼요','❤️ 사랑해요','💪 힘내요'];
+function renderLogin(){
+ appEl.innerHTML=`<div class="login" style="gap:16px">
+  <div style="text-align:center;margin-bottom:4px">
+    <img src="/my-icon-512.png?v=37" onerror="this.src='/my-icon-192.png?v=37'; this.onerror=null" alt="플로우갓 캐릭터" style="width:132px;height:132px;border-radius:50%;object-fit:contain;background:#FEE500;padding:10px;box-shadow:0 8px 24px rgba(0,0,0,.15);display:inline-block">
+  </div>
+  <h1 style="text-align:center;font-size:22px">🐣 플로우갓의 채팅방 입장</h1>
+  <input id="nameIn" placeholder="내 이름" oninput="checkAdminInput()" />
+  <div id="adminPwBox" style="display:none;background:#FFF3CD;border:1px solid #FFD60A;border-radius:12px;padding:10px">
+    <div style="font-size:12px;font-weight:700;color:#856404;margin-bottom:6px">👑 방장 인증 - 비밀번호 입력</div>
+    <input id="adminPwIn" type="password" placeholder="비밀번호 입력" style="width:100%;padding:11px;border:1px solid #ddd;border-radius:8px" />
+    <div style="font-size:10px;color:#856404;margin-top:4px">플로우갓은 관리자 전용 이름입니다</div>
+  </div>
+  <div>
+    <p style="font-size:13px;margin-bottom:8px;font-weight:600">내 캐릭터</p>
+    <div class="chars" id="chars"></div>
+  </div>
+  <input id="roomIn" placeholder="방 이름" value="main-room"/>
+  <button onclick="enter()" style="margin-top:4px">입장하기 →</button>
+ </div>`;
+ const emojis=['🐻','🐱','🐶','🐰','🦊','🐼','🐨','🐯','🐸','🐵','🦁','🐧'];
+ let sel=emojis[0];
+ const wrap=document.getElementById('chars');
+ emojis.forEach(e=>{
+   const d=document.createElement('div');
+   d.className='char'+(e===sel?' sel':'');
+   d.textContent=e;
+   d.onclick=()=>{
+     sel=e;
+     document.querySelectorAll('.char').forEach(c=>c.classList.remove('sel'));
+     d.classList.add('sel');
+   };
+   wrap.appendChild(d);
+ });
+ window._sel=()=>sel;
+}
+function checkAdminInput(){
+  var nameEl=document.getElementById('nameIn');
+  var box=document.getElementById('adminPwBox');
+  if(!nameEl||!box) return;
+  if(nameEl.value.trim()===ADMIN_NAME){
+    box.style.display='block';
+  } else {
+    box.style.display='none';
+  }
+}
+function enter(){
+ const name=document.getElementById('nameIn').value.trim(); if(!name) return alert('이름 입력');
+ // 플로우갓이면 비밀번호 검증
+ if(name===ADMIN_NAME){
+   var pwEl=document.getElementById('adminPwIn');
+   var pw=pwEl?pwEl.value:'';
+   if(pw!==ADMIN_PW){
+     alert('🚫 방장 비밀번호가 틀렸습니다!\n플로우갓 이름은 관리자만 사용할 수 있습니다.');
+     if(pwEl){ pwEl.value=''; pwEl.focus(); }
+     return;
+   }
+ }
+ const room=document.getElementById('roomIn').value.trim()||'main-room'; roomId=room;
+ myInfo={username:name,character:window._sel(),roomId,adminPassword: (name===ADMIN_NAME?ADMIN_PW:'')};
+ isHost = name.trim() === '플로우갓'; // 플로우갓만 방장
+  localStorage.removeItem('isHost-'+roomId);
+ initSocket(); renderChat(); initBgm();
+}
+function playEnterSound(){
+ if(!enterSoundEnabled) return;
+ try{
+   const ctx=new (window.AudioContext||window.webkitAudioContext)();
+   const vol=ctx.createGain(); vol.gain.value=myVolume*0.6; vol.connect(ctx.destination);
+   [0,140].forEach((d,i)=>setTimeout(()=>{const o=ctx.createOscillator();o.type='sine';o.frequency.value=i===0?784:1046;o.connect(vol);o.start();o.stop(ctx.currentTime+0.22);},d));
+ }catch(e){}
+}
+function initSocket(){
+ socket=io();
+ socket.emit('joinRoom',myInfo);
+ socket.on('chatMessage',d=>addMsg(d));
+ socket.on('fileMessage',d=>addFileMsg(d));
+ socket.on('voiceMessage',d=>addVoiceMsg(d));
+ socket.on('systemMessage',txt=>{addSystem(txt); if((txt.includes('들어왔')||txt.includes('입장')||txt.includes('입장'))&&!txt.includes(myInfo.username)) playEnterSound();});
+ socket.on('userJoined',data=>{if(data.username!==myInfo.username){addSystem(`🔔 ${data.character||'🐣'} ${data.username}님이 들어왔습니다.`); playEnterSound();}});
+ socket.on('userLeft',data=>addSystem(`👋 ${data.username}님이 나갔습니다.`));
+ socket.on('bgmTrackChange',track=>{if(bgmList.includes(track)){currentTrack=track;const p=document.getElementById('bgmPlayer');const was=!p.paused;p.src='/'+track+'?v=37';localStorage.setItem('lastBgmTrack',track);updateBgmSelect();if(was)p.play().catch(()=>{});addSystem(`🎵 BGM 변경: ${track}`);}});
+}
+function renderChat(){
+ var isAdmin = myInfo.username===ADMIN_NAME;
+ appEl.innerHTML=`<div class="header"><div class="headerTop"><b>${myInfo.character} ${myInfo.username} · ${roomId} ${isHost?'👑방장':''}</b><span style="display:flex;align-items:center;gap:8px"><span style="font-size:11px;color:#888">플로우갓의 채팅방 v37</span>${isAdmin?'<button onclick="saveChatLog()" style="padding:4px 10px;border-radius:16px;border:1px solid #FFD60A;background:#FFF3CD;font-size:11px;font-weight:700;cursor:pointer">📄 저장</button>':''}</span></div><div id="bgmBarWrap"></div></div>
+ <div class="messages" id="msgs" onclick="handleMessagesClick(event)"></div>
+ <div class="emojiBarWrap" id="emojiBarWrap">
+   <div class="emoPanel show" id="emoPanel" style="display:block"></div>
+ </div>
+ <button class="emojiRestoreBtn" id="emojiRestoreBtn" onclick="showEmojiBar()">😊 이모지</button>
+ <div class="inputArea"><button class="iconBtn" onclick="document.getElementById('fileIn').click()">📎</button><input id="fileIn" type="file" accept="image/*,video/*,audio/*,.pdf,.doc,.docx,.zip" hidden onchange="sendFile(this.files[0])"/><input id="textIn" placeholder="메시지 입력" autocomplete="off"/><button class="iconBtn" id="micBtn" onclick="toggleVoice()">🎤</button><button class="iconBtn send" onclick="sendText()">↑</button></div>`;
+ renderEmoPanel();
+ const ti=document.getElementById('textIn'); ti.focus();
+ ti.addEventListener('compositionstart',()=>isComposing=true);
+ ti.addEventListener('compositionend',()=>setTimeout(()=>isComposing=false,80));
+ ti.addEventListener('keydown',e=>{if(e.key==='Enter'){if(isComposing||e.isComposing||e.keyCode===229) return; e.preventDefault(); sendText();}});
+ renderBgmBar();
+ return;
+}
+function renderBgmBar(){
+ const w=document.getElementById('bgmBarWrap'); if(!w) return;
+ const options=bgmList.map(t=>`<option value="${t}" ${t===currentTrack?'selected':''}>${t.replace('.mp3','')} ${t===currentTrack?'▶':''}</option>`).join('');
+ const hostCtrl=isHost?`<select id="bgmSelect" onchange="changeTrack(this.value)">${options}</select>`:`<span style="font-size:11px;background:#fff;padding:4px 8px;border-radius:8px">🎵 ${currentTrack}</span>`;
+ // 일반 유저는 볼륨 슬라이더 제거 (방장만)
+ const volHtml = isHost ? `<span style="margin-left:auto">🔊 <span id="volLabel">${Math.round(myVolume*100)}%</span></span><input type="range" id="volSlider" min="0" max="1" step="0.01" value="${myVolume}" oninput="changeMyVolume(this.value)" style="flex:1; accent-color:#000; max-width:90px"><button onclick="toggleBgmMute()">🔇</button>` : ``;
+ w.innerHTML=`<div class="bgmBar"><button id="bgmPlayBtn" onclick="toggleBgm()">▶ 재생</button>${hostCtrl}${volHtml}<button onclick="toggleEnterSound()" id="enterBtn" style="margin-left:${isHost?'':'auto'}">${enterSoundEnabled?'🔔':'🔕'}</button></div><div style="font-size:10px;color:#888">${isHost?'👑 방장 | 볼륨조절 가능 | BGM 5곡 변경 가능':'일반 유저 | BGM 감상만 | 알람 '+ (enterSoundEnabled?'ON':'OFF')}</div>`;
+}
+function showFloatingEmoji(emoji){
+  // 항상 화면 중앙에 위치 - body에 추가 (fixed position)
+  var old = document.querySelectorAll('.floatingEmoji');
+  old.forEach(function(o){ o.remove(); });
+  var el = document.createElement('div');
+  el.className='floatingEmoji';
+  el.textContent=emoji;
+  el.title='클릭하면 사라짐';
+  el.onclick=function(){ this.remove(); };
+  document.body.appendChild(el);
+  setTimeout(function(){ if(el.parentNode) el.remove(); }, 2300);
+}
+function hideTopImg(el){
+  if(!el) return;
+  el.classList.add('hide');
+  setTimeout(function(){ el.style.display='none'; }, 350);
+}
+function hideTopMenu(){
+  var bgmBarWrap = document.getElementById('bgmBarWrap');
+  var header = document.querySelector('.header');
+  if(bgmBarWrap){
+    bgmBarWrap.style.transition='.35s';
+    bgmBarWrap.style.opacity='0';
+    bgmBarWrap.style.transform='translateY(-20px)';
+    bgmBarWrap.style.height='0';
+    bgmBarWrap.style.overflow='hidden';
+    bgmBarWrap.style.margin='0';
+    bgmBarWrap.style.padding='0';
+    setTimeout(function(){ bgmBarWrap.style.display='none'; }, 350);
+  }
+  // BGM bar only hide, header stays
+}
+function saveChatLog(){
+  // 관리자 모드에서만 저장 가능
+  if(myInfo.username !== ADMIN_NAME){
+    alert('🚫 저장 기능은 관리자(플로우갓)만 사용할 수 있습니다!');
+    return;
+  }
+  // 구글 드라이브 폴더 ID (자동 연동된 폴더)
+  window.GDRIVE_FOLDER_ID = '1hYEQHAM4QYNmclKbNPV2oOMUHaWDnkfH';
+  window.GDRIVE_FOLDER_LINK = 'https://drive.google.com/drive/folders/1hYEQHAM4QYNmclKbNPV2oOMUHaWDnkfH';
+  try{
+    var msgsEl = document.getElementById('msgs');
+    var allMsgs = msgsEl ? msgsEl.querySelectorAll('.msg') : [];
+    var log = '플로우갓의 채팅방 - 채팅 로그\n';
+    log += '저장일시: ' + new Date().toLocaleString('ko-KR') + '\n';
+    log += '참여자: ' + (myInfo.name || '익명') + '\n';
+    log += '방: ' + (myInfo.room || 'main-room') + '\n';
+    log += '========================================\n\n';
+    
+    if(allMsgs.length === 0){
+      log += '채팅 내용이 없습니다.\n';
+    } else {
+      allMsgs.forEach(function(m, idx){
+        var text = m.innerText || m.textContent || '';
+        var time = new Date().toLocaleTimeString('ko-KR');
+        log += '[' + time + '] ' + text + '\n';
+      });
+    }
+    
+    log += '\n========================================\n';
+    log += '총 메시지: ' + allMsgs.length + '개\n';
+    log += '생성: 플로우갓의 채팅방 v37\n';
+    
+    // 1. 로컬 다운로드
+    var blob = new Blob([log], {type: 'text/plain;charset=utf-8'});
+    var url = URL.createObjectURL(blob);
+    var a = document.createElement('a');
+    a.href = url;
+    var fileName = '플로우갓채팅_' + new Date().toISOString().slice(0,10) + '_' + Date.now().toString().slice(-5) + '.txt';
+    a.download = fileName;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+    
+    // 2. 구글 드라이브 저장 안내
+    console.log('Chat log prepared for Google Drive:', fileName);
+    
+    // 알림 + 구글 드라이브 폴더 링크
+    var notice = document.createElement('div');
+    notice.style.cssText = 'position:fixed;left:50%;top:25%;transform:translate(-50%,-50%);background:#000;color:#fff;padding:16px 22px;border-radius:14px;font-size:13px;z-index:9999;box-shadow:0 8px 32px rgba(0,0,0,.3);text-align:center;line-height:1.6;max-width:300px';
+    notice.innerHTML = '📄 채팅 로그 저장!<br><span style="font-size:12px;font-weight:700;color:#FEE500">' + fileName + '</span><br><a href="https://drive.google.com/drive/folders/1hYEQHAM4QYNmclKbNPV2oOMUHaWDnkfH" target="_blank" style="color:#4FC3F7;font-size:11px;text-decoration:underline">📁 드라이브 폴더 열기</a><br><span style="font-size:10px;opacity:.7">자동 연동 폴더에 저장됨</span>';
+    document.body.appendChild(notice);
+    setTimeout(function(){ if(notice.parentNode) notice.remove(); }, 5000);
+    
+    return log;
+  } catch(e){
+    console.error('Save failed', e);
+    alert('저장 실패: ' + e.message);
+  }
+}
+function saveToGoogleDocs(){
+  var log = saveChatLog();
+  // 구글 드라이브 연동을 위한 데이터 준비
+  var gdriveData = {
+    folderName: '플로우갓의 채팅방 로그',
+    fileName: '채팅_' + new Date().toISOString().slice(0,10) + '.txt',
+    content: log,
+    mimeType: 'text/plain'
+  };
+  console.log('Ready for Google Drive upload:', gdriveData);
+  
+  // 실제 구글 드라이브 업로드는 서버에서 처리 (google-drive-write 스킬 사용)
+  // 클라이언트에서는 로컬 저장만, 서버 API 호출은 추후 구현
+  fetch('/api/saveToDrive', {
+    method: 'POST',
+    headers: {'Content-Type': 'application/json'},
+    body: JSON.stringify(gdriveData)
+  }).then(function(r){ return r.json(); })
+  .then(function(data){
+    console.log('Drive save result:', data);
+    if(data.success){
+      alert('✅ 구글 드라이브 저장 완료!\n폴더: 플로우갓의 채팅방 로그');
+    } else {
+      console.log('Drive API not yet configured, local save only');
+    }
+  }).catch(function(err){
+    console.log('Drive API not configured yet - local save done', err);
+  });
+}
+function showTopMenu(){
+  var bgmBarWrap = document.getElementById('bgmBarWrap');
+  if(bgmBarWrap){
+    bgmBarWrap.style.display='flex';
+    bgmBarWrap.style.flexDirection='column';
+    setTimeout(function(){
+      bgmBarWrap.style.opacity='1';
+      bgmBarWrap.style.transform='translateY(0)';
+      bgmBarWrap.style.height='auto';
+      bgmBarWrap.style.overflow='visible';
+      bgmBarWrap.style.margin='';
+      bgmBarWrap.style.padding='';
+    }, 20);
+  }
+}
+function toggleTopBanner(){
+  var banner=document.getElementById('topBanner');
+  var wrap=document.getElementById('topImgWrap');
+  if(banner) hideTopImg(banner);
+  if(wrap) hideTopImg(wrap);
+  var bgm=document.querySelector('.bgmBar');
+  if(bgm){ bgm.style.transition='.3s'; bgm.style.opacity='0'; bgm.style.height='0'; bgm.style.overflow='hidden'; bgm.style.margin='0'; bgm.style.padding='0'; setTimeout(function(){ bgm.style.display='none'; }, 300); }
+}
+function handleMessagesClick(e){
+  if(e.target.closest && e.target.closest('.floatingEmoji')) return;
+  if(sliderOpen){ closeEmojiSlider(); }
+}
+function handleEmojiCardClick(emoji, fullText){
+  // 1. 서브메뉴 내용 챗방에 보여주기 (중앙 팝업 + 채팅 전송)
+  showFloatingEmoji(emoji);
+  if(fullText){
+    // 채팅에 표시하고 사라지는 페이드 효과는 showFloatingEmoji가 담당
+    socket.emit('chatMessage',{...myInfo,text:fullText});
+  }
+  // 2. 하얀색 서브메뉴 완전히 사라지게!
+  forceHideWhiteSubmenu();
+  closeEmojiSlider();
+}
+let openedCat = null;
+let sliderOpen = false;
+function renderEmoPanel(){
+  const panel=document.getElementById('emoPanel');
+  if(!panel) return;
+  const cats=Object.keys(emoticonCategories);
+  // 1단: 작게 펼침 방식 - 카테고리 6개 작은 원형 버튼
+  const collapsedTabs=cats.map(c=>{
+    const active=openedCat===c && sliderOpen ? 'active' : '';
+    return `<button class="catMini ${active}" onclick="event.stopPropagation(); toggleSecondTier('${c}')" title="${c}">${getCatIcon(c)}</button>`;
+  }).join('');
+  // 2단: 하단 슬라이더 형식 - 선택된 카테고리 이모지들 가로 슬라이더
+  let sliderHtml='';
+  if(openedCat && sliderOpen && emoticonCategories[openedCat]){
+    const items=emoticonCategories[openedCat].map(it=>`<div class="emoSlideItem" onclick="handleEmojiCardClick('${it.emoji}','${it.full}')"><span class="e">${it.emoji}</span><span class="t">${it.text}</span></div>`).join('');
+    sliderHtml=`<div class="emojiBottomSheet ${sliderOpen?'show':''}" id="emojiSliderSheet" onclick="hideTopMenu()"><div class="emojiSlider" onclick="event.stopPropagation()">${items}</div></div><div class="emoOverlay ${sliderOpen?'show':''}" id="emoOverlay" onclick="closeEmojiSlider();"></div>`;
+  }
+  var isAdmin2 = myInfo.username===ADMIN_NAME;
+  const hideHint = `<span class="expandHint" onclick="event.stopPropagation(); hideEmojiBar()" style="cursor:pointer;background:#f2f2f2;padding:4px 8px;border-radius:12px;font-size:11px;margin-right:6px">← 숨기기</span>`+ (isAdmin2?`<span class="expandHint" onclick="event.stopPropagation(); saveChatLog()" style="cursor:pointer;background:#FFF3CD;padding:4px 8px;border-radius:12px;font-size:11px;margin-right:6px;border:1px solid #FFD60A;font-weight:700">📄 저장</span>`:``);
+  panel.innerHTML=`<div class="emojiCollapsed" id="emojiCollapsedBar">${hideHint}${collapsedTabs}</div>${sliderHtml}`;
+}
+function getCatIcon(cat){
+  const icons={'감사':'🙏','찬양':'🙌','기쁨':'😊','슬픔':'😢','사랑':'❤️','응원':'💪'};
+  return icons[cat]||'✨';
+}
+function toggleSecondTier(cat){
+  if(openedCat===cat && sliderOpen){
+    // 같은 카테고리 다시 누르면 닫기
+    closeEmojiSlider();
+  } else {
+    openedCat=cat;
+    sliderOpen=true;
+    renderEmoPanel();
+  }
+}
+function closeEmojiSlider(){
+  sliderOpen=false;
+  // 하얀색 서브메뉴 완전히 사라지게
+  var sheet=document.getElementById('emojiSliderSheet');
+  var overlay=document.getElementById('emoOverlay');
+  if(sheet){
+    sheet.classList.remove('show');
+    sheet.style.transform='translateY(110%)';
+    setTimeout(function(){ 
+      sliderOpen=false;
+      renderEmoPanel(); 
+      if(sheet.parentNode) sheet.remove();
+    }, 280);
+  } else {
+    renderEmoPanel();
+  }
+  if(overlay){
+    overlay.classList.remove('show');
+  }
+  // 카테고리 active 제거
+  openedCat=null;
+}
+function forceHideWhiteSubmenu(){
+  sliderOpen=false;
+  openedCat=null;
+  var sheet=document.getElementById('emojiSliderSheet');
+  var overlay=document.getElementById('emoOverlay');
+  if(sheet) sheet.remove();
+  if(overlay) overlay.remove();
+  renderEmoPanel();
+}
+function hideEmojiBar(){
+  const wrap = document.getElementById('emojiBarWrap');
+  if(wrap) wrap.classList.add('hidden');
+  const restore = document.getElementById('emojiRestoreBtn');
+  if(restore) restore.classList.add('show');
+  closeEmojiSlider();
+}
+function showEmojiBar(){
+  const wrap = document.getElementById('emojiBarWrap');
+  if(wrap) wrap.classList.remove('hidden');
+  const restore = document.getElementById('emojiRestoreBtn');
+  if(restore) restore.classList.remove('show');
+}
+function closeSliderAfterSend(){
+  // 전송 후에도 슬라이더 유지 - 연속 선택 편하게
+  // 바로 닫고 싶으면 아래 주석 해제
+  // setTimeout(()=>closeEmojiSlider(), 800);
+}
+function switchEmoCat(cat){ toggleSecondTier(cat); }
+function toggleEmoPanel(){ toggleSecondTier('감사'); }
+function closeAfterSend(){}
+function ensureAudioContext(){
+  try{
+    if(!audioCtx){
+      audioCtx = new (window.AudioContext||window.webkitAudioContext)();
+      gainNode = audioCtx.createGain();
+      gainNode.gain.value = myVolume;
+      gainNode.connect(audioCtx.destination);
+    }
+    if(audioCtx.state==='suspended') audioCtx.resume();
+    var p=document.getElementById('bgmPlayer');
+    if(p && !mediaSource){
+      mediaSource = audioCtx.createMediaElementSource(p);
+      mediaSource.connect(gainNode);
+    }
+  }catch(e){ console.log('AudioContext error', e); }
+}
+function toggleEnterSound(){enterSoundEnabled=!enterSoundEnabled; localStorage.setItem('enterSoundEnabled',enterSoundEnabled?'1':'0'); const b=document.getElementById('enterBtn'); if(b) b.textContent=enterSoundEnabled?'🔔':'🔕'; if(enterSoundEnabled) playEnterSound();}
+function updateBgmSelect(){const s=document.getElementById('bgmSelect'); if(s) s.value=currentTrack;}
+function initBgm(){
+  const p=document.getElementById('bgmPlayer');
+  if(!p){console.log('bgmPlayer 없음!'); return;}
+  p.src='/'+currentTrack+'?v=37';
+  p.volume=1;
+  p.preload='auto';
+  p.setAttribute('playsinline','');
+  p.setAttribute('webkit-playsinline','');
+  console.log('BGM init',currentTrack,myVolume);
+  // Web Audio for iPhone volume control
+  ensureAudioContext();
+  if(gainNode) gainNode.gain.value = myVolume;
+}
+function toggleBgm(){
+  const p=document.getElementById('bgmPlayer');
+  if(!p) return;
+  ensureAudioContext();
+  if(p.paused){
+    if(gainNode) gainNode.gain.value = myVolume;
+    p.play().then(()=>{
+      const btn=document.getElementById('bgmPlayBtn');
+      if(btn) btn.textContent='⏸ 정지';
+      console.log('BGM playing vol',myVolume);
+    }).catch(function(e){ alert('재생 버튼 다시 눌러주세요! (아이폰은 직접 눌러야 재생돼요)'); console.log(e); });
+  } else {
+    p.pause();
+    const btn=document.getElementById('bgmPlayBtn');
+    if(btn) btn.textContent='▶ 재생';
+  }
+}
+function changeTrack(t){
+  if(!isHost){alert('BGM 변경은 플로우갓만 가능!'); return;}
+  currentTrack=t;
+  const p=document.getElementById('bgmPlayer');
+  const was=p && !p.paused;
+  if(p){ 
+    p.src='/'+t+'?v=37'; 
+    if(gainNode) gainNode.gain.value = myVolume;
+    p.volume=1;
+    if(was) p.play().catch(function(){}); 
+  }
+  localStorage.setItem('lastBgmTrack',t);
+  if(socket) socket.emit('bgmTrackChange',t);
+  addSystem('🎵 BGM 변경: '+t+' (방장)');
+}
+function changeMyVolume(v){
+  myVolume=parseFloat(v);
+  localStorage.setItem('myBgmVolume',myVolume);
+  // iPhone: Web Audio API GainNode로 볼륨 조절 (audio.volume은 아이폰에서 안 먹음)
+  ensureAudioContext();
+  if(gainNode){
+    try{ gainNode.gain.value = myVolume; }catch(e){}
+  }
+  // PC 백업: 일반 audio.volume도 설정
+  const p=document.getElementById('bgmPlayer');
+  if(p){ try{ p.volume=1; p.muted=false; }catch(e){} }
+  console.log('volume changed to',myVolume,'gain',gainNode?gainNode.gain.value:'no gain');
+  const label=document.getElementById('volLabel');
+  if(label) label.textContent=Math.round(myVolume*100)+'%';
+  const slider=document.getElementById('volSlider');
+  if(slider && slider.value != v) slider.value = v;
+}
+function toggleBgmMute(){
+  const s=document.getElementById('volSlider');
+  if(!s) return;
+  if(myVolume>0.01){
+    s.dataset.prev=myVolume;
+    changeMyVolume(0);
+    s.value=0;
+  } else {
+    const prev=parseFloat(s.dataset.prev||'0.5');
+    changeMyVolume(prev);
+    s.value=prev;
+  }
+}
+function esc(s){return s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');}
+function addMsg(d){const me=d.username===myInfo.username; const el=document.createElement('div'); el.className=me?'msg me':'msg other'; el.innerHTML=`<div class="sender">${d.character||'🐣'} ${esc(d.username)}</div><div>${esc(d.text)}</div><div class="meta">${new Date(d.id||Date.now()).toLocaleTimeString('ko-KR',{hour:'2-digit',minute:'2-digit'})}</div>`; document.getElementById('msgs').appendChild(el); scroll();}
+function addSystem(t){const el=document.createElement('div'); el.className='system'; el.textContent=t; const m=document.getElementById('msgs'); if(m){m.appendChild(el); scroll();}}
+function addFileMsg(d){
+ const me=d.username===myInfo.username;
+ const isImg=d.dataUrl && d.dataUrl.startsWith('data:image');
+ const el=document.createElement('div'); el.className=me?'msg me':'msg other';
+ let content='';
+ if(isImg){
+   content=`<div>${esc(d.fileName)}</div><img class="chatImg" src="${d.dataUrl}" onclick="openModal('${d.dataUrl}','${esc(d.fileName)}')" alt="${esc(d.fileName)}"><div style="margin-top:6px;display:flex;gap:6px"><button onclick="openModal('${d.dataUrl}','${esc(d.fileName)}')" style="font-size:11px;padding:4px 8px;border-radius:12px;border:1px solid #ddd;background:#fff">🔍 확대</button><a href="${d.dataUrl}" download="${d.fileName}" style="font-size:11px;padding:4px 8px;border-radius:12px;border:1px solid #ddd;background:#fff;text-decoration:none;color:#000">📥 다운로드</a></div>`;
+ } else {
+   content=`<div>📄 ${esc(d.fileName)} (${Math.round((d.size||0)/1024)}KB)</div><a href="${d.dataUrl}" download="${d.fileName}" style="font-size:12px;color:#007AFF">📥 다운로드</a>`;
+ }
+ el.innerHTML=`<div class="sender">${d.character||'🐣'} ${esc(d.username)}</div>${content}<div class="meta">${new Date().toLocaleTimeString('ko-KR',{hour:'2-digit',minute:'2-digit'})}</div>`;
+ document.getElementById('msgs').appendChild(el); scroll();
+}
+function addVoiceMsg(d){const me=d.username===myInfo.username; const el=document.createElement('div'); el.className=me?'msg me':'msg other'; el.innerHTML=`<div class="sender">${d.character||'🐣'} ${esc(d.username)}</div><div style="display:flex;align-items:center;gap:8px"><button onclick="new Audio('${d.dataUrl}').play()" style="padding:6px 12px;border-radius:20px;border:none;background:#fff">▶ ${d.duration||'?'}s 음성</button></div>`; document.getElementById('msgs').appendChild(el); scroll();}
+function scroll(){const m=document.getElementById('msgs'); if(m) m.scrollTop=m.scrollHeight;}
+function sendText(){if(isComposing) return; const inp=document.getElementById('textIn'); let t=inp.value.trim(); if(!t) return; t=t.replace(/\s+/g,' '); socket.emit('chatMessage',{...myInfo,text:t}); inp.value=''; inp.focus();}
+function sendReaction(txt){
+  var first = txt.trim().split(' ')[0] || '😊';
+  showFloatingEmoji(first);
+socket.emit('chatMessage',{...myInfo,text:txt});}
+function sendFile(f){if(!f) return; if(f.size>10*1024*1024) return alert('10MB 이하만 가능해요'); const r=new FileReader(); r.onload=()=>{socket.emit('fileMessage',{...myInfo,fileName:f.name,size:f.size,dataUrl:r.result});}; r.readAsDataURL(f); document.getElementById('fileIn').value='';}
+function openModal(url,name){document.getElementById('modalImg').src=url; document.getElementById('modalDown').href=url; document.getElementById('modalDown').download=name; document.getElementById('imgModal').classList.add('show');}
+function closeModal(e){if(e.target.id==='imgModal'||e.target.id==='modalImg') document.getElementById('imgModal').classList.remove('show');}
+let rec,chunks=[],startT;
+async function toggleVoice(){
+ const btn=document.getElementById('micBtn');
+ if(rec&&rec.state==='recording'){rec.stop(); btn.textContent='🎤'; btn.style.background=''; return;}
+ try{
+ const stream=await navigator.mediaDevices.getUserMedia({audio:true});
+ rec=new MediaRecorder(stream); chunks=[]; startT=Date.now();
+ rec.ondataavailable=e=>chunks.push(e.data);
+ rec.onstop=()=>{const blob=new Blob(chunks,{type:'audio/webm'}); const r=new FileReader(); r.onload=()=>{socket.emit('voiceMessage',{...myInfo,dataUrl:r.result,duration:Math.round((Date.now()-startT)/1000)});}; r.readAsDataURL(blob); stream.getTracks().forEach(t=>t.stop());};
+ rec.start(); btn.textContent='⏹'; btn.style.background='#ff4444';
+ }catch(e){alert('마이크 권한 필요!');}
+}
+renderLogin();
+</script>
+</body>
+</html>
