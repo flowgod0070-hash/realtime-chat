@@ -1,182 +1,302 @@
 <!DOCTYPE html>
 <html lang="ko">
 <head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
-<link rel="manifest" href="./manifest.json?v=38">
-<link rel="apple-touch-icon" href="./my-icon-180.png?v=38">
-<title>플로우갓의 채팅방</title>
-<meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
-<meta name="theme-color" content="#ffffff">
-<meta name="apple-mobile-web-app-title" content="플로우갓의 채팅방">
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>플로우갓의 채팅방 v38 COMBO FIX</title>
+<script src="https://cdn.socket.io/4.7.2/socket.io.min.js"></script>
 <style>
-*{margin:0;padding:0;box-sizing:border-box}
-body{font-family:-apple-system,BlinkMacSystemFont,'Apple SD Gothic Neo','Noto Sans KR',sans-serif;background:#fff;height:100dvh;display:flex;justify-content:center;align-items:center;padding-top:env(safe-area-inset-top)}
-.app{width:100%;max-width:420px;height:100dvh;height:calc(100dvh - env(safe-area-inset-top));background:#fff;display:flex;flex-direction:column;position:relative;overflow:hidden}
-@media(min-width:500px){.app{height:90dvh;border-radius:24px;box-shadow:0 10px 40px rgba(0,0,0,.1)}}
-.header{background:#ffffffee;backdrop-filter:blur(20px);padding:12px 14px;padding-top:calc(12px + env(safe-area-inset-top));display:flex;flex-direction:column;gap:8px;border-bottom:1px solid #f0f0f0;z-index:10}
-.headerTop{display:flex;justify-content:space-between;align-items:center}
-.header b{font-size:16px}
-.bgmBar{display:flex;align-items:center;gap:6px;background:#f5f5f7;padding:8px 10px;border-radius:12px;font-size:12px;flex-wrap:wrap}
-.bgmBar select{padding:5px 8px;border-radius:8px;border:1px solid #ddd;font-size:12px;background:#fff}
-.bgmBar input[type=range]{flex:1;min-width:70px;max-width:110px;height:24px;-webkit-appearance:none;appearance:none;background:transparent;touch-action:none}
-.bgmBar input[type=range]::-webkit-slider-runnable-track{height:6px;background:#ddd;border-radius:3px}
-.bgmBar input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:22px;height:22px;border-radius:50%;background:#000;margin-top:-8px;cursor:pointer;box-shadow:0 1px 4px rgba(0,0,0,.2)}
-.bgmBar input[type=range]::-moz-range-track{height:6px;background:#ddd;border-radius:3px}
-.bgmBar input[type=range]::-moz-range-thumb{width:22px;height:22px;border-radius:50%;background:#000;border:none;cursor:pointer}
-.bgmBar button{padding:5px 8px;border:none;border-radius:8px;background:#fff;border:1px solid #ddd;cursor:pointer;font-size:12px}
-.emojiBarWrap{background:#fafafa;border-bottom:1px solid #eee;position:relative}
-.emojiCollapsed{display:flex;gap:6px;overflow-x:auto;padding:8px 10px;scrollbar-width:none;align-items:center}
-.emojiCollapsed::-webkit-scrollbar{display:none}
-.catMini{flex:0 0 auto;width:34px;height:34px;border-radius:50%;border:1.5px solid #eee;background:#fff;display:grid;place-items:center;font-size:16px;cursor:pointer;transition:.15s}
-.catMini.active{background:#000;color:#fff;border-color:#000;transform:scale(1.1)}
-.expandHint{font-size:10px;color:#888;margin-left:2px;white-space:nowrap}
-.emojiBottomSheet{position:absolute;bottom:100%;left:0;right:0;background:#fff;border-radius:16px 16px 0 0;box-shadow:0 -4px 20px rgba(0,0,0,.12);transform:translateY(110%);transition:transform .28s cubic-bezier(.32,.72,.38,1.2);z-index:20;max-height:150px;overflow:hidden;border:1px solid #eee;border-bottom:none}
-.emojiBottomSheet.show{transform:translateY(0)}
-.emojiSlider{display:flex;gap:8px;overflow-x:auto;padding:8px 14px 14px;scroll-snap-type:x mandatory;scrollbar-width:none}
-.emojiSlider::-webkit-scrollbar{display:none}
-.emoSlideItem{flex:0 0 58px;scroll-snap-align:start;background:#fff;border:1px solid #f0f0f0;border-radius:14px;padding:8px 4px;text-align:center;cursor:pointer;transition:.15s}
-.emoSlideItem:active{transform:scale(.92);background:#FEE500}
-.emoSlideItem .e{font-size:22px;display:block;margin-bottom:3px}
-.emoSlideItem .t{font-size:10px;font-weight:600;color:#333;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-.emoOverlay{position:absolute;inset:0;background:rgba(0,0,0,.12);display:none;z-index:10}
-.emoOverlay.show{display:block}
-.emojiBarWrap.hidden{display:none !important}
-.emojiRestoreBtn{position:absolute;left:10px;bottom:70px;background:#fff;border:1px solid #eee;border-radius:20px;padding:6px 12px;font-size:12px;box-shadow:0 2px 8px rgba(0,0,0,.1);z-index:5;cursor:pointer;display:none}
-.emojiRestoreBtn.show{display:block}
-.floatingEmoji{position:fixed;left:50%;top:50%;transform:translate(-50%,-50%) scale(0.5);font-size:92px;z-index:9999;pointer-events:auto;animation:emojiPopFade 2.2s cubic-bezier(.34,1.56,.64,1) forwards;text-shadow:0 8px 32px rgba(0,0,0,.3);cursor:pointer}
-@keyframes emojiPopFade{0%{opacity:0;transform:translate(-50%,-50%) scale(0.2)}18%{opacity:1;transform:translate(-50%,-50%) scale(1.35)}28%{transform:translate(-50%,-50%) scale(1.05)}75%{opacity:1;transform:translate(-50%,-50%) scale(1.05)}100%{opacity:0;transform:translate(-50%,-40%) scale(0.7)}}
-.messages{position:relative}
-.login{flex:1;display:flex;flex-direction:column;justify-content:center;padding:24px 28px;gap:14px;background:#fff;overflow-y:auto}
-.login h1{font-size:23px;line-height:1.3}
-.login input{padding:13px;border:1px solid #ddd;border-radius:12px;font-size:16px}
-.login button{padding:13px;background:#FEE500;border:none;border-radius:12px;font-weight:700;font-size:16px;cursor:pointer}
-.chars{display:flex;gap:8px;flex-wrap:wrap}
-.char{width:42px;height:42px;border-radius:50%;display:grid;place-items:center;font-size:20px;background:#f5f5f5;cursor:pointer;border:2px solid transparent;transition:.15s}
-.char.sel{border-color:transparent;background:#FEE500;transform:scale(1.12);box-shadow:0 2px 8px rgba(0,0,0,.12)}
-.messages{flex:1;overflow-y:auto;padding:14px;background:#ABC1D1;display:flex;flex-direction:column;gap:10px}
-.msg{max-width:82%;padding:10px 14px;border-radius:18px;font-size:15px;line-height:1.45;white-space:pre-wrap;word-break:keep-all;overflow-wrap:break-word;animation:pop .2s}
-@keyframes pop{from{transform:scale(.95);opacity:0}to{transform:scale(1);opacity:1}}
-.msg.me{align-self:flex-end;background:#FEE500;border-bottom-right-radius:4px}
-.msg.other{align-self:flex-start;background:#fff;border-bottom-left-radius:4px;box-shadow:0 1px 2px rgba(0,0,0,.1)}
-.msg .sender{font-size:12px;font-weight:700;margin-bottom:4px;display:flex;align-items:center;gap:4px}
-.msg .meta{font-size:10px;color:#888;margin-top:4px}
-.msg img.chatImg{max-width:100%;max-height:260px;border-radius:12px;margin-top:6px;cursor:pointer;display:block}
-.system{align-self:center;background:rgba(0,0,0,.22);color:#fff;padding:4px 12px;border-radius:20px;font-size:12px}
-.inputArea{display:flex;gap:6px;padding:10px;background:#fff;border-top:1px solid #eee;align-items:center}
-.inputArea input{flex:1;padding:12px 14px;border:none;background:#f2f2f2;border-radius:24px;font-size:15px;outline:none}
-.iconBtn{width:40px;height:40px;border-radius:50%;border:none;background:#f2f2f2;display:grid;place-items:center;font-size:18px;cursor:pointer;transition:.15s;flex:0 0 40px}
-.iconBtn:active{transform:scale(.92)}
-.send{background:#FEE500}
-#imgModal{position:fixed;inset:0;background:rgba(0,0,0,.85);display:none;justify-content:center;align-items:center;z-index:9999;flex-direction:column;gap:12px;padding:20px}
-#imgModal.show{display:flex}
-#imgModal img{max-width:95vw;max-height:80vh;border-radius:12px}
-#imgModal .modalBtns{display:flex;gap:10px}
-#imgModal .modalBtns button{padding:10px 18px;border-radius:20px;border:none;font-size:14px;font-weight:600;cursor:pointer}
-.emojiRain{position:fixed;top:-50px;pointer-events:none;z-index:9998;animation:emojiFall linear forwards;will-change:transform}
-@keyframes emojiFall{0%{transform:translateY(0) rotate(0deg);opacity:1}100%{transform:translateY(110vh) rotate(720deg);opacity:0}}
-.system.daily{background:linear-gradient(135deg,#FEE500 0%,#FFD60A 100%);color:#000;font-weight:700;padding:8px 14px;box-shadow:0 2px 12px rgba(254,229,0,.4);border:1px solid #FFD60A}
+:root{--yellow:#FEE500;--bg:#FFFFFF;--chat-bg:#B2C7D9;--bubble-me:#FEE500;--bubble-other:#FFFFFF;--ink:#191919;}
+*{margin:0;padding:0;box-sizing:border-box;}
+body{font-family:'Noto Sans KR',Apple SD Gothic Neo,sans-serif;background:var(--bg);color:var(--ink);height:100vh;display:flex;flex-direction:column;overflow:hidden;}
+header{height:52px;background:var(--yellow);display:flex;align-items:center;justify-content:space-between;padding:0 16px;font-weight:800;font-size:18px;letter-spacing:-0.3px;flex-shrink:0;}
+header .sub{font-size:12px;font-weight:600;opacity:0.7;margin-left:8px;}
+#chat{flex:1;background:var(--chat-bg);overflow-y:auto;padding:16px;display:flex;flex-direction:column;gap:10px;}
+.bubble{max-width:72%;padding:10px 14px;border-radius:18px;font-size:14px;line-height:1.4;position:relative;word-break:break-word;}
+.bubble.other{background:var(--bubble-other);align-self:flex-start;border-top-left-radius:4px;}
+.bubble.me{background:var(--bubble-me);align-self:flex-end;border-top-right-radius:4px;}
+.bubble .meta{font-size:10px;opacity:0.55;margin-bottom:4px;display:flex;gap:6px;align-items:center;}
+.bubble .emoji-big{font-size:28px;}
+#inputBar{height:56px;background:#FFF;display:flex;align-items:center;gap:8px;padding:0 12px;border-top:1px solid #E8E8E8;flex-shrink:0;}
+#inputBar input{flex:1;height:38px;border-radius:19px;border:1px solid #E6E6E6;background:#F6F6F6;padding:0 16px;font-size:14px;outline:none;}
+#inputBar button{height:38px;padding:0 16px;border-radius:19px;border:none;background:var(--yellow);font-weight:700;font-size:14px;cursor:pointer;}
+#charBar{display:flex;gap:6px;overflow-x:auto;padding:8px 12px;background:#FFF;border-top:1px solid #F0F0F0;flex-shrink:0;}
+#charBar::-webkit-scrollbar{display:none;}
+.char{width:36px;height:36px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:20px;cursor:pointer;border:2px solid transparent;flex-shrink:0;background:#F9F9F9;}
+.char.active{border-color:var(--yellow);background:#FFF9BF;}
+#emoTabs{display:flex;gap:4px;padding:8px 12px;background:#FFF;border-top:1px solid #F0F0F0;overflow-x:auto;flex-shrink:0;}
+#emoTabs::-webkit-scrollbar{display:none;}
+.tab{padding:6px 12px;border-radius:999px;font-size:12px;font-weight:700;cursor:pointer;white-space:nowrap;background:#F2F2F2;}
+.tab.active{background:var(--ink);color:#FFF;}
+#emoGrid{display:grid;grid-template-columns:repeat(3,1fr);gap:6px;padding:10px 12px;background:#FAFAFA;max-height:164px;overflow-y:auto;flex-shrink:0;}
+.emo{padding:10px 6px;border-radius:12px;background:#FFF;border:1px solid #EEEEEE;text-align:center;font-size:13px;cursor:pointer;user-select:none;transition:transform 0.08s;}
+.emo:active{transform:scale(0.94);}
+.emo span{display:block;font-size:20px;margin-bottom:2px;}
+.combo-rain{position:fixed;inset:0;pointer-events:none;z-index:9999;}
+.rain-item{position:absolute;top:-40px;animation:fall linear forwards;}
+@keyframes fall{to{transform:translateY(110vh) rotate(360deg);}}
+.float-emoji{position:fixed;left:50%;bottom:120px;transform:translateX(-50%);font-size:64px;animation:floatUp 1.6s ease-out forwards;pointer-events:none;z-index:10000;}
+@keyframes floatUp{0%{transform:translateX(-50%) translateY(0) scale(0.6);opacity:0;}15%{opacity:1;}100%{transform:translateX(-50%) translateY(-260px) scale(1.3);opacity:0;}}
+.combo-badge{position:fixed;top:64px;left:50%;transform:translateX(-50%);background:#191919;color:#FEE500;padding:8px 16px;border-radius:999px;font-weight:800;font-size:14px;z-index:10001;animation:pop 0.6s ease;}
+@keyframes pop{0%{transform:translateX(-50%) scale(0.5);}50%{transform:translateX(-50%) scale(1.15);}100%{transform:translateX(-50%) scale(1);}}
 </style>
 </head>
 <body>
-<div class="app" id="app"></div>
-<div id="imgModal" onclick="closeModal(event)"><img id="modalImg" src=""><div class="modalBtns"><a id="modalDown" download style="text-decoration:none"><button style="background:#FEE500">📥 다운로드</button></a><button onclick="document.getElementById('imgModal').classList.remove('show')" style="background:#fff">✖ 닫기</button></div></div>
-<audio id="bgmPlayer" loop preload="auto"></audio>
-<script src="https://cdn.socket.io/4.7.5/socket.io.min.js"></script>
+<header>
+<div style="display:flex;align-items:center;">플로우갓의 채팅방 <span class="sub">v38 COMBO FIX FULL</span></div>
+<div style="font-size:11px;background:#191919;color:#FEE500;padding:4px 8px;border-radius:999px;">LIVE</div>
+</header>
+<div id="chat"></div>
+<div id="charBar"></div>
+<div id="emoTabs"></div>
+<div id="emoGrid"></div>
+<div id="inputBar">
+<input id="msgInput" placeholder="메시지를 입력하세요..."/>
+<button id="sendBtn">전송</button>
+</div>
+
 <script>
-const appEl=document.getElementById('app');
-let socket,myInfo,roomId='main-room';
-let isComposing=false,isHost=false;
-let currentTrack=localStorage.getItem('lastBgmTrack')||'bgm1.mp3';
-let myVolume=parseFloat(localStorage.getItem('myBgmVolume')||'0.5');
-let enterSoundEnabled=localStorage.getItem('enterSoundEnabled')!=='0';
-let audioCtx=null, gainNode=null, mediaSource=null;
-const ADMIN_NAME='플로우갓'; const ADMIN_PW='0325';
-const bgmList=['bgm1.mp3','bgm2.mp3','bgm3.mp3','bgm4.mp3','bgm5.mp3'];
-const emoticonCategories = {
-  '감사': [{emoji:'🙏', text:'감사해요', full:'🙏 감사해요!'},{emoji:'🥹', text:'고마워요', full:'🥹 너무 고마워요!'},{emoji:'🙇', text:'감사합니다', full:'🙇 감사합니다!'}],
-  '찬양': [{emoji:'🙌', text:'할렐루야', full:'🙌 할렐루야!'},{emoji:'👏', text:'찬양해요', full:'👏 하나님 찬양해요!'}],
-  '기쁨': [{emoji:'😊', text:'기뻐요', full:'😊 너무 기뻐요!'},{emoji:'🎉', text:'기쁨충만', full:'🎉 기쁨이 충만해요!'}],
-  '슬픔': [{emoji:'😢', text:'슬퍼요', full:'😢 슬퍼요...'},{emoji:'😭', text:'눈물나', full:'😭 눈물이 나요...'}],
-  '사랑': [{emoji:'❤', text:'사랑해요', full:'❤ 사랑해요!'},{emoji:'💕', text:'사랑해', full:'💕 사랑해요'}],
-  '응원': [{emoji:'💪', text:'힘내요', full:'💪 힘내세요!'},{emoji:'🙏', text:'기도해요', full:'🙏 기도할게요!'}],
+// ===== v38 COMBO FIX FULL CONFIG =====
+const COMBO_COUNT = 3;
+const COMBO_WINDOW = 2000;
+const CHARACTERS = ['🐻','🐱','🐶','🐰','🦊','🐼','🐨','🐯','🐸','🐵','🦁','🐧'];
+
+const EMOTICONS = {
+  '감사': [
+    {e:'🙏', t:'감사해요'},
+    {e:'💛', t:'고마워요'},
+    {e:'🥹', t:'감동이에요'},
+    {e:'🫶', t:'사랑해요 감사'},
+    {e:'✨', t:'은혜에요'},
+    {e:'😭', t:'눈물나게 감사'}
+  ],
+  '찬양': [
+    {e:'🙌', t:'할렐루야'},
+    {e:'👏', t:'찬양해요'},
+    {e:'🔥', t:'불타는찬양'},
+    {e:'💃', t:'춤추며찬양'},
+    {e:'🎤', t:'목놓아찬양'},
+    {e:'⭐', t:'영광돌려요'}
+  ],
+  '기쁨': [
+    {e:'😆', t:'너무기뻐'},
+    {e:'🤣', t:'웃음팡'},
+    {e:'😁', t:'행복해요'},
+    {e:'🥳', t:'파티타임'},
+    {e:'😊', t:'미소천사'},
+    {e:'🤩', t:'신나요'}
+  ],
+  '슬픔': [
+    {e:'😢', t:'슬퍼요'},
+    {e:'😭', t:'울고싶어'},
+    {e:'🥺', t:'서운해요'},
+    {e:'😞', t:'힘들어요'},
+    {e:'💧', t:'눈물줄줄'},
+    {e:'😿', t:'속상해'}
+  ],
+  '사랑': [
+    {e:'❤️', t:'사랑해요'},
+    {e:'💕', t:'하트뿅뿅'},
+    {e:'😍', t:'반했어요'},
+    {e:'💋', t:'쪽'},
+    {e:'🫂', t:'안아줘요'},
+    {e:'💌', t:'러브레터'}
+  ],
+  '응원': [
+    {e:'💪', t:'화이팅'},
+    {e:'🔥', t:'응원해요'},
+    {e:'🙏', t:'기도해요'},
+    {e:'✨', t:'힘내요'},
+    {e:'🌈', t:'잘될거야'},
+    {e:'👍', t:'최고야'}
+  ]
 };
-let recentEmojiTaps = []; let comboCooldown = false; const COMBO_COUNT = 3;
-function trackEmojiCombo(emoji, isLocalTrigger=true){
-  const now = Date.now(); if(!emoji) return;
-  const firstEmoji = Array.from(emoji)[0];
-  recentEmojiTaps.push({emoji:firstEmoji, time:now});
-  recentEmojiTaps = recentEmojiTaps.filter(e => now - e.time <= 10000);
-  const sameCount = recentEmojiTaps.filter(e => e.emoji === firstEmoji).length;
-  if(sameCount >= COMBO_COUNT && !comboCooldown){
-    comboCooldown = true;
-    triggerEmojiRain(firstEmoji);
-    addSystemDaily(`🎉 ${firstEmoji} 콤보! ${COMBO_COUNT}번 모였어요!`);
-    if(isLocalTrigger && socket){ socket.emit('emojiComboRain', { roomId, emoji: firstEmoji, user: myInfo.username }); }
-    setTimeout(()=>{ comboCooldown=false; recentEmojiTaps = recentEmojiTaps.filter(e=>e.emoji!==firstEmoji); },5000);
+
+let currentChar = CHARACTERS[0];
+let currentCategory = '감사';
+let lastEmoji = null;
+let comboCount = 0;
+let lastTime = 0;
+let currentUser = '나';
+let socket = null;
+
+try {
+  socket = io();
+  socket.on('connect', function(){ addSystem('서버 연결됨 v38'); });
+  socket.on('chatMessage', function(data){ addOther(data); });
+  socket.on('emojiMessage', function(data){ addOther(data); });
+  // COMBO FIX LISTENERS
+  socket.on('emojiComboRain', function(data){
+    showComboRain(data.emoji);
+    showComboBadge(data.emoji + ' COMBO x' + data.count);
+  });
+  socket.on('emojiFloat', function(data){
+    showEmojiFloat(data.emoji);
+  });
+} catch(e){
+  console.log('socket offline, local mode');
+}
+
+function $(s){ return document.querySelector(s); }
+
+function initChars(){
+  var bar = $('#charBar');
+  CHARACTERS.forEach(function(c){
+    var d = document.createElement('div');
+    d.className = 'char' + (c===currentChar?' active':'');
+    d.textContent = c;
+    d.onclick = function(){
+      currentChar = c;
+      document.querySelectorAll('.char').forEach(function(x){ x.classList.remove('active'); });
+      d.classList.add('active');
+    };
+    bar.appendChild(d);
+  });
+}
+
+function initTabs(){
+  var tabs = $('#emoTabs');
+  Object.keys(EMOTICONS).forEach(function(cat){
+    var b = document.createElement('div');
+    b.className = 'tab' + (cat===currentCategory?' active':'');
+    b.textContent = cat;
+    b.onclick = function(){
+      currentCategory = cat;
+      document.querySelectorAll('.tab').forEach(function(x){ x.classList.remove('active'); });
+      b.classList.add('active');
+      renderGrid();
+    };
+    tabs.appendChild(b);
+  });
+}
+
+function renderGrid(){
+  var grid = $('#emoGrid');
+  grid.innerHTML = '';
+  EMOTICONS[currentCategory].forEach(function(item){
+    var el = document.createElement('div');
+    el.className = 'emo';
+    el.innerHTML = '<span>'+item.e+'</span>'+item.t;
+    el.onclick = function(){ sendEmo(item.e + ' ' + item.t, item.e); };
+    grid.appendChild(el);
+  });
+}
+
+function trackEmojiCombo(emoji){
+  var now = Date.now();
+  if(lastEmoji === emoji && (now - lastTime) < COMBO_WINDOW){
+    comboCount += 1;
+  } else {
+    comboCount = 1;
+  }
+  lastEmoji = emoji;
+  lastTime = now;
+
+  if(comboCount >= COMBO_COUNT){
+    var payload = { emoji: emoji, count: comboCount, user: currentUser, char: currentChar };
+    if(socket){
+      socket.emit('emojiComboRain', payload);
+      socket.emit('emojiFloat', payload);
+    }
+    // local fallback
+    showComboRain(emoji);
+    showEmojiFloat(emoji);
+    showComboBadge(emoji + ' COMBO x' + comboCount + '!');
+    comboCount = 0;
   }
 }
-function triggerEmojiRain(emoji){
-  for(let i=0;i<30;i++){ setTimeout(()=>{ const el=document.createElement('div'); el.className='emojiRain'; el.textContent=emoji; el.style.left=(Math.random()*100)+'vw'; el.style.animationDuration=(1.8+Math.random()*1.5)+'s'; el.style.fontSize=(22+Math.random()*28)+'px'; document.body.appendChild(el); setTimeout(()=>el.remove(),4000); },i*70); }
-  if(navigator.vibrate) navigator.vibrate([80,40,80]);
+
+function showComboRain(emoji){
+  var container = document.createElement('div');
+  container.className = 'combo-rain';
+  document.body.appendChild(container);
+  for(var i=0;i<18;i++){
+    var s = document.createElement('div');
+    s.className = 'rain-item';
+    s.textContent = emoji;
+    s.style.left = Math.random()*100 + 'vw';
+    s.style.fontSize = (18 + Math.random()*26) + 'px';
+    s.style.animationDuration = (0.9 + Math.random()*1.2) + 's';
+    s.style.animationDelay = (Math.random()*0.3) + 's';
+    container.appendChild(s);
+  }
+  setTimeout(function(){ container.remove(); }, 2200);
 }
-function addSystemDaily(text){ const el=document.createElement('div'); el.className='system daily'; el.textContent=text; const m=document.getElementById('msgs'); if(m){ m.appendChild(el); scroll(); } }
-function renderLogin(){
- appEl.innerHTML=`<div class="login" style="gap:16px"><h1 style="text-align:center">🐣 플로우갓의 채팅방 v38 COMBO FIX</h1><input id="nameIn" placeholder="내 이름" oninput="checkAdminInput()"/><div id="adminPwBox" style="display:none;background:#FFF3CD;border:1px solid #FFD60A;border-radius:12px;padding:10px"><input id="adminPwIn" type="password" placeholder="비밀번호" style="width:100%;padding:11px;border:1px solid #ddd;border-radius:8px"/></div><div class="chars" id="chars"></div><input id="roomIn" value="main-room"/><button onclick="enter()">입장하기 →</button></div>`;
- const emojis=['🐻','🐱','🐶','🐰','🦊','🐼']; let sel=emojis[0]; const wrap=document.getElementById('chars');
- emojis.forEach(e=>{ const d=document.createElement('div'); d.className='char'+(e===sel?' sel':''); d.textContent=e; d.onclick=()=>{ sel=e; document.querySelectorAll('.char').forEach(c=>c.classList.remove('sel')); d.classList.add('sel'); }; wrap.appendChild(d); }); window._sel=()=>sel;
+
+function showEmojiFloat(emoji){
+  var f = document.createElement('div');
+  f.className = 'float-emoji';
+  f.textContent = emoji;
+  document.body.appendChild(f);
+  setTimeout(function(){ f.remove(); }, 1600);
 }
-function checkAdminInput(){ var n=document.getElementById('nameIn'); var b=document.getElementById('adminPwBox'); if(!n||!b) return; b.style.display = n.value.trim()===ADMIN_NAME?'block':'none'; }
-function enter(){
- const name=document.getElementById('nameIn').value.trim(); if(!name) return alert('이름 입력');
- if(name===ADMIN_NAME){ var pw=document.getElementById('adminPwIn').value; if(pw!=='0325'){ alert('비밀번호 틀림'); return; } }
- roomId=document.getElementById('roomIn').value.trim()||'main-room';
- myInfo={username:name,character:window._sel(),roomId}; isHost=name==='플로우갓';
- initSocket(); renderChat(); initBgm();
+
+function showComboBadge(text){
+  var b = document.createElement('div');
+  b.className = 'combo-badge';
+  b.textContent = text;
+  document.body.appendChild(b);
+  setTimeout(function(){ b.remove(); }, 1400);
 }
-function initSocket(){
- socket = io();
- socket.emit('joinRoom',myInfo);
- socket.on('chatMessage',d=>addMsg(d));
- socket.on('systemMessage',t=>addSystem(t));
- socket.on('emojiComboRain', data=>{
-   triggerEmojiRain(data.emoji);
-   addSystemDaily(`🎉 ${data.user}님이 ${data.emoji} 콤보 터뜨림!`);
-   comboCooldown=true; setTimeout(()=>{comboCooldown=false;},5000);
- });
- socket.on('emojiFloat', data=>{ showFloatingEmoji(data.emoji); });
+
+function addMe(text){
+  var c = $('#chat');
+  var d = document.createElement('div');
+  d.className = 'bubble me';
+  d.innerHTML = '<div class="meta">'+currentChar+' 나</div>' + text;
+  c.appendChild(d);
+  c.scrollTop = c.scrollHeight;
 }
-function renderChat(){
- appEl.innerHTML=`<div class="header"><b>${myInfo.character} ${myInfo.username} · ${roomId} v38 FIX</b></div><div class="messages" id="msgs"></div><div class="emojiBarWrap" id="emojiBarWrap"><div id="emoPanel"></div></div><div class="inputArea"><input id="textIn" placeholder="메시지"/><button class="iconBtn send" onclick="sendText()">↑</button></div>`;
- renderEmoPanel();
- document.getElementById('textIn').addEventListener('keydown',e=>{ if(e.key==='Enter') sendText(); });
+
+function addOther(data){
+  var c = $('#chat');
+  var d = document.createElement('div');
+  d.className = 'bubble other';
+  var char = data.char || '🐻';
+  var user = data.user || '익명';
+  var msg = data.text || data.message || '';
+  d.innerHTML = '<div class="meta">'+char+' '+user+'</div>' + msg;
+  c.appendChild(d);
+  c.scrollTop = c.scrollHeight;
 }
-function renderEmoPanel(){
-  const panel=document.getElementById('emoPanel'); if(!panel) return;
-  let html=''; Object.keys(emoticonCategories).forEach(c=>{
-    html+=`<div style="padding:6px"><b>${c}</b><div style="display:flex;gap:6px;overflow-x:auto">`;
-    emoticonCategories[c].forEach(it=>{ html+=`<div class="emoSlideItem" onclick="handleEmojiCardClick('${it.emoji}','${it.full}')"><span class="e">${it.emoji}</span><span class="t">${it.text}</span></div>`; });
-    html+='</div></div>';
-  }); panel.innerHTML=html;
+
+function addSystem(text){
+  var c = $('#chat');
+  var d = document.createElement('div');
+  d.style.textAlign='center';
+  d.style.fontSize='11px';
+  d.style.color='#6B6B6B';
+  d.style.margin='6px 0';
+  d.textContent = text;
+  c.appendChild(d);
 }
-function handleEmojiCardClick(emoji, fullText){
-  showFloatingEmoji(emoji); trackEmojiCombo(emoji, true);
-  if(socket) socket.emit('emojiFloat', { roomId, emoji });
-  if(fullText) socket.emit('chatMessage',{...myInfo,text:fullText});
+
+function sendEmo(text, emojiChar){
+  var payload = { text: text, user: currentUser, char: currentChar, emoji: emojiChar };
+  addMe(text);
+  if(socket){
+    socket.emit('emojiMessage', payload);
+  }
+  trackEmojiCombo(emojiChar);
 }
-function showFloatingEmoji(emoji){ var el=document.createElement('div'); el.className='floatingEmoji'; el.textContent=emoji; document.body.appendChild(el); setTimeout(()=>el.remove(),2300); }
-function esc(s){return s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');}
-function addMsg(d){
-  try{ const f = d.text?Array.from(d.text.trim())[0]:''; if(f) trackEmojiCombo(f,false); }catch(e){}
-  const me=d.username===myInfo.username;
-  const el=document.createElement('div'); el.className=me?'msg me':'msg other'; el.innerHTML=`<div>${esc(d.username)}</div><div>${esc(d.text)}</div>`;
-  document.getElementById('msgs').appendChild(el); document.getElementById('msgs').scrollTop=99999;
-}
-function addSystem(t){ const el=document.createElement('div'); el.className='system'; el.textContent=t; const m=document.getElementById('msgs'); if(m){ m.appendChild(el); m.scrollTop=99999; } }
-function sendText(){ const inp=document.getElementById('textIn'); let t=inp.value.trim(); if(!t) return; socket.emit('chatMessage',{...myInfo,text:t}); inp.value=''; }
-function initBgm(){}
-function scroll(){ const m=document.getElementById('msgs'); if(m) m.scrollTop=m.scrollHeight; }
-renderLogin();
+
+$('#sendBtn').onclick = function(){
+  var v = $('#msgInput').value.trim();
+  if(!v) return;
+  var payload = { text: v, user: currentUser, char: currentChar };
+  addMe(v);
+  if(socket) socket.emit('chatMessage', payload);
+  $('#msgInput').value = '';
+};
+
+$('#msgInput').addEventListener('keydown', function(e){
+  if(e.key === 'Enter') $('#sendBtn').click();
+});
+
+initChars();
+initTabs();
+renderGrid();
+addSystem('v38 COMBO FIX FULL 로드됨 - 이모티콘 36개 / 캐릭터 12개 / COMBO_COUNT=3');
 </script>
 </body>
 </html>
